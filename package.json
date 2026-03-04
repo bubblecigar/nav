@@ -171,6 +171,18 @@
         "command": "nav-extension.focusBookmarkExplorer",
         "key": "ctrl+shift+e",
         "mac": "cmd+shift+e"
+      },
+      {
+        "command": "nav-extension.moveBookmarkUp",
+        "key": "ctrl+up",
+        "mac": "cmd+up",
+        "when": "focusedView == bookmarkExplorer && nav-extension.canMoveUp"
+      },
+      {
+        "command": "nav-extension.moveBookmarkDown",
+        "key": "ctrl+down",
+        "mac": "cmd+down",
+        "when": "focusedView == bookmarkExplorer && nav-extension.canMoveDown"
       }
     ]
   },

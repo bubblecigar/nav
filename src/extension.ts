@@ -242,22 +242,38 @@ export function activate(context: vscode.ExtensionContext) {
     });
     
     // Move bookmark up command
-    let moveBookmarkUpDisposable = vscode.commands.registerCommand('nav-extension.moveBookmarkUp', (treeItem: BookmarkTreeItem) => {
-        const success = bookmarkHistory.moveBookmarkUp(treeItem.bookmark);
+    let moveBookmarkUpDisposable = vscode.commands.registerCommand('nav-extension.moveBookmarkUp', (treeItem?: BookmarkTreeItem) => {
+        // If no treeItem provided (keyboard shortcut), get current selection
+        const targetItem = treeItem || (treeView.selection.length > 0 ? treeView.selection[0] : null);
+        
+        if (!targetItem) {
+            vscode.window.showWarningMessage('No bookmark selected');
+            return;
+        }
+        
+        const success = bookmarkHistory.moveBookmarkUp(targetItem.bookmark);
         if (success) {
-            vscode.window.showInformationMessage(`Moved "${treeItem.bookmark.text}" up`);
+            vscode.window.showInformationMessage(`Moved "${targetItem.bookmark.text}" up`);
         } else {
-            vscode.window.showInformationMessage(`"${treeItem.bookmark.text}" is already at the top`);
+            vscode.window.showInformationMessage(`"${targetItem.bookmark.text}" is already at the top`);
         }
     });
     
     // Move bookmark down command
-    let moveBookmarkDownDisposable = vscode.commands.registerCommand('nav-extension.moveBookmarkDown', (treeItem: BookmarkTreeItem) => {
-        const success = bookmarkHistory.moveBookmarkDown(treeItem.bookmark);
+    let moveBookmarkDownDisposable = vscode.commands.registerCommand('nav-extension.moveBookmarkDown', (treeItem?: BookmarkTreeItem) => {
+        // If no treeItem provided (keyboard shortcut), get current selection
+        const targetItem = treeItem || (treeView.selection.length > 0 ? treeView.selection[0] : null);
+        
+        if (!targetItem) {
+            vscode.window.showWarningMessage('No bookmark selected');
+            return;
+        }
+        
+        const success = bookmarkHistory.moveBookmarkDown(targetItem.bookmark);
         if (success) {
-            vscode.window.showInformationMessage(`Moved "${treeItem.bookmark.text}" down`);
+            vscode.window.showInformationMessage(`Moved "${targetItem.bookmark.text}" down`);
         } else {
-            vscode.window.showInformationMessage(`"${treeItem.bookmark.text}" is already at the bottom`);
+            vscode.window.showInformationMessage(`"${targetItem.bookmark.text}" is already at the bottom`);
         }
     });
     
