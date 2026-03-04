@@ -4,6 +4,7 @@ export interface BookmarkItem {
     line: number;
     character: number;
     timestamp: Date;
+    notes?: string;
     children?: BookmarkItem[];
     parent?: BookmarkItem;
 }

@@ -321,6 +321,25 @@ export function activate(context: vscode.ExtensionContext) {
             bookmarkDetailsPanel.onDidDispose(() => {
                 bookmarkDetailsPanel = undefined;
             }, null, context.subscriptions);
+
+            // Handle messages from the webview
+            bookmarkDetailsPanel.webview.onDidReceiveMessage(
+                message => {
+                    switch (message.command) {
+                        case 'saveNotes':
+                            const success = bookmarkHistory.updateBookmarkNotes(message.bookmarkKey, message.notes);
+                            if (success) {
+                                // Optionally show success message
+                                vscode.window.showInformationMessage('Notes saved successfully');
+                            } else {
+                                vscode.window.showErrorMessage('Failed to save notes');
+                            }
+                            return;
+                    }
+                },
+                undefined,
+                context.subscriptions
+            );
         }
     });
     

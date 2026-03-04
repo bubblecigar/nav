@@ -32,6 +32,7 @@ export class BookmarkHistory {
             line: item.line,
             character: item.character,
             timestamp: item.timestamp.toISOString(),
+            notes: item.notes,
             children: item.children ? this.serializeBookmarks(item.children) : undefined
         }));
     }
@@ -65,6 +66,7 @@ export class BookmarkHistory {
                 line: item.line,
                 character: item.character,
                 timestamp: new Date(item.timestamp),
+                notes: item.notes,
                 parent: parent || undefined,
                 children: undefined
             };
@@ -205,6 +207,39 @@ export class BookmarkHistory {
 
     save(): void {
         this.saveToStorage();
+    }
+
+    updateBookmarkNotes(bookmarkKey: string, notes: string): boolean {
+        // Parse the bookmark key (format: filePath:line:character:timestamp)
+        const keyParts = bookmarkKey.split(':');
+        if (keyParts.length < 4) return false;
+        
+        const filePath = keyParts.slice(0, -3).join(':'); // Handle file paths with colons
+        const line = parseInt(keyParts[keyParts.length - 3]);
+        const character = parseInt(keyParts[keyParts.length - 2]);
+        const timestamp = parseInt(keyParts[keyParts.length - 1]);
+        
+        // Find the bookmark using all identifiers
+        const findAndUpdate = (bookmarks: BookmarkItem[]): boolean => {
+            for (const bookmark of bookmarks) {
+                if (bookmark.filePath === filePath && 
+                    bookmark.line === line && 
+                    bookmark.character === character && 
+                    bookmark.timestamp.getTime() === timestamp) {
+                    
+                    bookmark.notes = notes;
+                    this._onDidChangeTreeData.fire();
+                    this.saveToStorage();
+                    return true;
+                }
+                if (bookmark.children && findAndUpdate(bookmark.children)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        
+        return findAndUpdate(this.history);
     }
 
     moveBookmarkUp(bookmark: BookmarkItem): boolean {
@@ -489,6 +524,7 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
                 line: item.line,
                 character: item.character,
                 timestamp: new Date(item.timestamp),
+                notes: item.notes,
                 parent: parent || undefined,
                 children: undefined
             };
