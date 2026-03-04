@@ -26,11 +26,11 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                 line-height: 1.5;
             }
             .bookmark-title {
-                font-size: 24px;
+                font-size: 12px;
                 font-weight: bold;
                 color: var(--vscode-textLink-foreground);
-                margin-bottom: 20px;
-                padding: 15px;
+                margin-bottom: 5px;
+                padding-left: 5px;
                 border-left: 4px solid var(--vscode-textLink-foreground);
                 border-radius: 4px;
                 font-family: var(--vscode-editor-font-family);
@@ -40,7 +40,7 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                 margin-bottom: 30px;
             }
             .notes-header {
-                font-size: 18px;
+                font-size: 12px;
                 font-weight: bold;
                 color: var(--vscode-textLink-foreground);
                 margin-bottom: 10px;
@@ -57,7 +57,7 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                 border: 2px solid var(--vscode-input-border);
                 border-radius: 4px;
                 font-family: var(--vscode-editor-font-family);
-                font-size: 14px;
+                font-size: 12px;
                 resize: vertical;
                 box-sizing: border-box;
                 line-height: 1.6;
@@ -84,7 +84,7 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                 border: none;
                 border-radius: 3px;
                 cursor: pointer;
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 500;
             }
             .save-button:hover {
@@ -104,14 +104,14 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                 border-top: 1px solid var(--vscode-panel-border);
             }
             .metadata-header {
-                font-size: 14px;
+                font-size: 12px;
                 font-weight: 500;
                 color: var(--vscode-textLink-foreground);
                 margin-bottom: 10px;
             }
             .meta-item {
                 margin-bottom: 6px;
-                font-size: 11px;
+                font-size: 12px;
                 color: var(--vscode-descriptionForeground);
             }
             .meta-label {
@@ -125,7 +125,7 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                 font-family: var(--vscode-editor-font-family);
                 padding: 1px 4px;
                 border-radius: 2px;
-                font-size: 10px;
+                font-size: 12px;
             }
         </style>
     </head>
@@ -133,23 +133,15 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
         <div class="bookmark-title">${bookmark.text}</div>
         
         <div class="notes-section">
-            <div class="notes-header">
-                📝 Notes
-            </div>
             <textarea 
                 id="notesTextarea" 
                 class="notes-textarea" 
                 placeholder="Add your personal notes, thoughts, or context about this bookmark..."
                 data-bookmark-key="${bookmark.filePath}:${bookmark.line}:${bookmark.character}:${bookmark.timestamp.getTime()}"
             >${notes}</textarea>
-            <div class="notes-controls">
-                <button id="saveNotesBtn" class="save-button">Save Notes</button>
-                <div id="statusMessage" class="status-message"></div>
-            </div>
         </div>
         
         <div class="metadata-section">
-            <div class="metadata-header">Debug Information</div>
             <div class="meta-item">
                 <span class="meta-label">File:</span>
                 <span class="meta-value">${bookmark.filePath}</span>
@@ -276,12 +268,12 @@ export function getEmptyWebviewContent(): string {
             }
             .no-selection {
                 font-style: italic;
-                font-size: 16px;
+                font-size: 12px;
             }
             .instructions {
                 margin-top: 20px;
                 color: var(--vscode-foreground);
-                font-size: 14px;
+                font-size: 12px;
             }
         </style>
     </head>
