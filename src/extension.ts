@@ -174,6 +174,12 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     
+    // Remove single bookmark command
+    let removeBookmarkDisposable = vscode.commands.registerCommand('nav-extension.removeBookmark', (treeItem: BookmarkTreeItem) => {
+        bookmarkHistory.remove(treeItem.bookmark);
+        vscode.window.showInformationMessage(`Removed bookmark: "${treeItem.bookmark.text}"`);
+    });
+    
     // Focus bookmark explorer command
     let focusBookmarkExplorerDisposable = vscode.commands.registerCommand('nav-extension.focusBookmarkExplorer', () => {
         vscode.commands.executeCommand('bookmarkExplorer.focus');
@@ -302,6 +308,7 @@ export function activate(context: vscode.ExtensionContext) {
         navigateToBookmarkDisposable,
         showHistoryDisposable,
         clearHistoryDisposable,
+        removeBookmarkDisposable,
         focusBookmarkExplorerDisposable,
         setAsParentDisposable,
         addChildBookmarkDisposable,

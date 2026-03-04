@@ -57,6 +57,11 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "nav-extension.removeBookmark",
+        "title": "Remove Bookmark",
+        "icon": "$(close)"
+      },
+      {
         "command": "nav-extension.focusBookmarkExplorer",
         "title": "Focus Bookmark Explorer",
         "icon": "$(search-view-icon)"
@@ -130,9 +135,18 @@
           "command": "nav-extension.addChildBookmark",
           "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
           "group": "bookmark@2"
+        },
+        {
+          "command": "nav-extension.removeBookmark",
+          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
+          "group": "actions@1"
         }
       ],
       "commandPalette": [
+        {
+          "command": "nav-extension.removeBookmark",
+          "when": "false"
+        },
         {
           "command": "nav-extension.setAsParent",
           "when": "false"
