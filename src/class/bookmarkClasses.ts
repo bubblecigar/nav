@@ -104,11 +104,33 @@ export class BookmarkHistory {
     }
 
     remove(item: BookmarkItem) {
+        // Remove from top-level history
         this.history = this.history.filter(h => 
             !(h.text === item.text && h.filePath === item.filePath && h.line === item.line && h.timestamp === item.timestamp)
         );
+        
+        // Recursively remove from children of all bookmarks
+        this.removeFromChildren(this.history, item);
+        
         this._onDidChangeTreeData.fire();
         this.saveToStorage(); // Persist changes
+    }
+
+    private removeFromChildren(bookmarks: BookmarkItem[], itemToRemove: BookmarkItem): void {
+        bookmarks.forEach(bookmark => {
+            if (bookmark.children) {
+                // Remove from this bookmark's children
+                bookmark.children = bookmark.children.filter(child =>
+                    !(child.text === itemToRemove.text && 
+                      child.filePath === itemToRemove.filePath && 
+                      child.line === itemToRemove.line && 
+                      child.timestamp === itemToRemove.timestamp)
+                );
+                
+                // Recursively check children's children
+                this.removeFromChildren(bookmark.children, itemToRemove);
+            }
+        });
     }
 
     getHistory(): BookmarkItem[] {
