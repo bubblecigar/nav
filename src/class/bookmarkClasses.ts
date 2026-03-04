@@ -549,6 +549,11 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
             const draggedBookmark = this.findBookmarkInHistory(draggedData);
             if (!draggedBookmark) continue;
 
+            // Check if target is a descendant of the dragged bookmark to prevent circular references
+            if (target && this.isDescendantOf(target.bookmark, draggedBookmark)) {
+                continue; // Skip this drop operation
+            }
+
             this.bookmarkHistory.remove(draggedBookmark);
 
             // Recreate the bookmark with proper structure
@@ -601,6 +606,30 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
             
             return bookmark;
         });
+    }
+
+    private isDescendantOf(potential: BookmarkItem, ancestor: BookmarkItem): boolean {
+        // Check if potential is a descendant of ancestor
+        if (!ancestor.children) return false;
+        
+        for (const child of ancestor.children) {
+            // Direct child match
+            if (this.bookmarksEqual(child, potential)) {
+                return true;
+            }
+            // Recursive check in child's descendants
+            if (this.isDescendantOf(potential, child)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private bookmarksEqual(a: BookmarkItem, b: BookmarkItem): boolean {
+        return a.text === b.text && 
+               a.filePath === b.filePath && 
+               a.line === b.line && 
+               a.timestamp.getTime() === b.timestamp.getTime();
     }
 
     private findBookmarkInHistory(data: any): BookmarkItem | null {
