@@ -286,6 +286,64 @@ export class BookmarkHistory {
         }
         return false;
     }
+
+    canMoveUp(bookmark: BookmarkItem): boolean {
+        if (bookmark.parent) {
+            // Check within parent's children
+            const siblings = bookmark.parent.children;
+            if (!siblings || siblings.length <= 1) return false;
+
+            const currentIndex = siblings.findIndex(child => 
+                child.text === bookmark.text && 
+                child.filePath === bookmark.filePath && 
+                child.line === bookmark.line &&
+                child.timestamp.getTime() === bookmark.timestamp.getTime()
+            );
+
+            return currentIndex > 0;
+        } else {
+            // Check within top-level history
+            if (this.history.length <= 1) return false;
+
+            const currentIndex = this.history.findIndex(item => 
+                item.text === bookmark.text && 
+                item.filePath === bookmark.filePath && 
+                item.line === bookmark.line &&
+                item.timestamp.getTime() === bookmark.timestamp.getTime()
+            );
+
+            return currentIndex > 0;
+        }
+    }
+
+    canMoveDown(bookmark: BookmarkItem): boolean {
+        if (bookmark.parent) {
+            // Check within parent's children
+            const siblings = bookmark.parent.children;
+            if (!siblings || siblings.length <= 1) return false;
+
+            const currentIndex = siblings.findIndex(child => 
+                child.text === bookmark.text && 
+                child.filePath === bookmark.filePath && 
+                child.line === bookmark.line &&
+                child.timestamp.getTime() === bookmark.timestamp.getTime()
+            );
+
+            return currentIndex >= 0 && currentIndex < siblings.length - 1;
+        } else {
+            // Check within top-level history
+            if (this.history.length <= 1) return false;
+
+            const currentIndex = this.history.findIndex(item => 
+                item.text === bookmark.text && 
+                item.filePath === bookmark.filePath && 
+                item.line === bookmark.line &&
+                item.timestamp.getTime() === bookmark.timestamp.getTime()
+            );
+
+            return currentIndex >= 0 && currentIndex < this.history.length - 1;
+        }
+    }
 }
 
 export class BookmarkTreeItem extends vscode.TreeItem {

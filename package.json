@@ -113,12 +113,12 @@
         },
         {
           "command": "nav-extension.moveBookmarkUp",
-          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
+          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent) && nav-extension.canMoveUp",
           "group": "reorder@1"
         },
         {
           "command": "nav-extension.moveBookmarkDown",
-          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
+          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent) && nav-extension.canMoveDown",
           "group": "reorder@2"
         },
         {
