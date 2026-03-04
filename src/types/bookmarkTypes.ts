@@ -1,4 +1,5 @@
 export interface BookmarkItem {
+    id?: string;
     text: string;
     filePath: string;
     line: number;

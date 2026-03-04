@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { BookmarkItem } from '../types/bookmarkTypes';
+import { generateId } from '../utils/idUtils';
 
 export class BookmarkHistory {
     private history: BookmarkItem[] = [];
@@ -27,6 +28,7 @@ export class BookmarkHistory {
 
     private serializeBookmarks(bookmarks: BookmarkItem[]): any[] {
         return bookmarks.map(item => ({
+            id: item.id,
             text: item.text,
             filePath: item.filePath,
             line: item.line,
@@ -61,6 +63,7 @@ export class BookmarkHistory {
             if (!this.isValidBookmarkData(item)) return null;
             
             const bookmark: BookmarkItem = {
+                id: item.id || generateId(),
                 text: item.text,
                 filePath: item.filePath,
                 line: item.line,
@@ -88,10 +91,18 @@ export class BookmarkHistory {
     }
 
     add(item: BookmarkItem) {
-        // Remove duplicate if exists
-        this.history = this.history.filter(h => 
-            !(h.text === item.text && h.filePath === item.filePath && h.line === item.line)
-        );
+        // Ensure bookmark has an ID
+        if (!item.id) {
+            item.id = generateId();
+        }
+        
+        // Remove duplicate if exists (use ID if available, fallback to metadata)
+        this.history = this.history.filter(h => {
+            if (h.id && item.id) {
+                return h.id !== item.id;
+            }
+            return !(h.text === item.text && h.filePath === item.filePath && h.line === item.line);
+        });
         
         // Add to end of history (oldest to newest)
         this.history.push(item);
@@ -106,10 +117,13 @@ export class BookmarkHistory {
     }
 
     remove(item: BookmarkItem) {
-        // Remove from top-level history
-        this.history = this.history.filter(h => 
-            !(h.text === item.text && h.filePath === item.filePath && h.line === item.line && h.timestamp === item.timestamp)
-        );
+        // Remove from top-level history using ID if available
+        this.history = this.history.filter(h => {
+            if (h.id && item.id) {
+                return h.id !== item.id;
+            }
+            return !(h.text === item.text && h.filePath === item.filePath && h.line === item.line && h.timestamp === item.timestamp);
+        });
         
         // Recursively remove from children of all bookmarks
         this.removeFromChildren(this.history, item);
@@ -121,13 +135,16 @@ export class BookmarkHistory {
     private removeFromChildren(bookmarks: BookmarkItem[], itemToRemove: BookmarkItem): void {
         bookmarks.forEach(bookmark => {
             if (bookmark.children) {
-                // Remove from this bookmark's children
-                bookmark.children = bookmark.children.filter(child =>
-                    !(child.text === itemToRemove.text && 
-                      child.filePath === itemToRemove.filePath && 
-                      child.line === itemToRemove.line && 
-                      child.timestamp === itemToRemove.timestamp)
-                );
+                // Remove from this bookmark's children using ID if available
+                bookmark.children = bookmark.children.filter(child => {
+                    if (child.id && itemToRemove.id) {
+                        return child.id !== itemToRemove.id;
+                    }
+                    return !(child.text === itemToRemove.text && 
+                             child.filePath === itemToRemove.filePath && 
+                             child.line === itemToRemove.line && 
+                             child.timestamp === itemToRemove.timestamp);
+                });
                 
                 // Recursively check children's children
                 this.removeFromChildren(bookmark.children, itemToRemove);
@@ -158,14 +175,22 @@ export class BookmarkHistory {
             parentBookmark.children = [];
         }
         
+        // Ensure child bookmark has an ID
+        if (!childBookmark.id) {
+            childBookmark.id = generateId();
+        }
+        
         childBookmark.parent = parentBookmark;
         
-        // Remove duplicate child if exists
-        parentBookmark.children = parentBookmark.children.filter(child =>
-            !(child.text === childBookmark.text && 
-              child.filePath === childBookmark.filePath && 
-              child.line === childBookmark.line)
-        );
+        // Remove duplicate child if exists (use ID if available, fallback to metadata)
+        parentBookmark.children = parentBookmark.children.filter(child => {
+            if (child.id && childBookmark.id) {
+                return child.id !== childBookmark.id;
+            }
+            return !(child.text === childBookmark.text && 
+                     child.filePath === childBookmark.filePath && 
+                     child.line === childBookmark.line);
+        });
         
         // Add to end of children (oldest to newest)
         parentBookmark.children.push(childBookmark);
@@ -205,11 +230,40 @@ export class BookmarkHistory {
         return search(this.history);
     }
 
+    findBookmarkById(id: string): BookmarkItem | null {
+        const search = (bookmarks: BookmarkItem[]): BookmarkItem | null => {
+            for (const bookmark of bookmarks) {
+                if (bookmark.id === id) {
+                    return bookmark;
+                }
+                if (bookmark.children) {
+                    const found = search(bookmark.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        
+        return search(this.history);
+    }
+
     save(): void {
         this.saveToStorage();
     }
 
     updateBookmarkNotes(bookmarkKey: string, notes: string): boolean {
+        // Check if bookmarkKey is an ID
+        if (bookmarkKey.startsWith('bookmark_')) {
+            const bookmark = this.findBookmarkById(bookmarkKey);
+            if (bookmark) {
+                bookmark.notes = notes;
+                this._onDidChangeTreeData.fire();
+                this.saveToStorage();
+                return true;
+            }
+            return false;
+        }
+        
         // Parse the bookmark key (format: filePath:line:character:timestamp)
         const keyParts = bookmarkKey.split(':');
         if (keyParts.length < 4) return false;
@@ -314,12 +368,15 @@ export class BookmarkHistory {
             const siblings = bookmark.parent.children;
             if (!siblings) return false;
 
-            const currentIndex = siblings.findIndex(child => 
-                child.text === bookmark.text && 
-                child.filePath === bookmark.filePath && 
-                child.line === bookmark.line &&
-                child.timestamp.getTime() === bookmark.timestamp.getTime()
-            );
+            const currentIndex = siblings.findIndex(child => {
+                if (child.id && bookmark.id) {
+                    return child.id === bookmark.id;
+                }
+                return child.text === bookmark.text && 
+                       child.filePath === bookmark.filePath && 
+                       child.line === bookmark.line &&
+                       child.timestamp.getTime() === bookmark.timestamp.getTime();
+            });
 
             if (currentIndex > 0) {
                 // Swap with previous sibling
@@ -330,12 +387,15 @@ export class BookmarkHistory {
             }
         } else {
             // Move within top-level history
-            const currentIndex = this.history.findIndex(item => 
-                item.text === bookmark.text && 
-                item.filePath === bookmark.filePath && 
-                item.line === bookmark.line &&
-                item.timestamp.getTime() === bookmark.timestamp.getTime()
-            );
+            const currentIndex = this.history.findIndex(item => {
+                if (item.id && bookmark.id) {
+                    return item.id === bookmark.id;
+                }
+                return item.text === bookmark.text && 
+                       item.filePath === bookmark.filePath && 
+                       item.line === bookmark.line &&
+                       item.timestamp.getTime() === bookmark.timestamp.getTime();
+            });
 
             if (currentIndex > 0) {
                 // Swap with previous item
@@ -354,12 +414,15 @@ export class BookmarkHistory {
             const siblings = bookmark.parent.children;
             if (!siblings) return false;
 
-            const currentIndex = siblings.findIndex(child => 
-                child.text === bookmark.text && 
-                child.filePath === bookmark.filePath && 
-                child.line === bookmark.line &&
-                child.timestamp.getTime() === bookmark.timestamp.getTime()
-            );
+            const currentIndex = siblings.findIndex(child => {
+                if (child.id && bookmark.id) {
+                    return child.id === bookmark.id;
+                }
+                return child.text === bookmark.text && 
+                       child.filePath === bookmark.filePath && 
+                       child.line === bookmark.line &&
+                       child.timestamp.getTime() === bookmark.timestamp.getTime();
+            });
 
             if (currentIndex >= 0 && currentIndex < siblings.length - 1) {
                 // Swap with next sibling
@@ -370,12 +433,15 @@ export class BookmarkHistory {
             }
         } else {
             // Move within top-level history
-            const currentIndex = this.history.findIndex(item => 
-                item.text === bookmark.text && 
-                item.filePath === bookmark.filePath && 
-                item.line === bookmark.line &&
-                item.timestamp.getTime() === bookmark.timestamp.getTime()
-            );
+            const currentIndex = this.history.findIndex(item => {
+                if (item.id && bookmark.id) {
+                    return item.id === bookmark.id;
+                }
+                return item.text === bookmark.text && 
+                       item.filePath === bookmark.filePath && 
+                       item.line === bookmark.line &&
+                       item.timestamp.getTime() === bookmark.timestamp.getTime();
+            });
 
             if (currentIndex >= 0 && currentIndex < this.history.length - 1) {
                 // Swap with next item
@@ -394,24 +460,30 @@ export class BookmarkHistory {
             const siblings = bookmark.parent.children;
             if (!siblings || siblings.length <= 1) return false;
 
-            const currentIndex = siblings.findIndex(child => 
-                child.text === bookmark.text && 
-                child.filePath === bookmark.filePath && 
-                child.line === bookmark.line &&
-                child.timestamp.getTime() === bookmark.timestamp.getTime()
-            );
+            const currentIndex = siblings.findIndex(child => {
+                if (child.id && bookmark.id) {
+                    return child.id === bookmark.id;
+                }
+                return child.text === bookmark.text && 
+                       child.filePath === bookmark.filePath && 
+                       child.line === bookmark.line &&
+                       child.timestamp.getTime() === bookmark.timestamp.getTime();
+            });
 
             return currentIndex > 0;
         } else {
             // Check within top-level history
             if (this.history.length <= 1) return false;
 
-            const currentIndex = this.history.findIndex(item => 
-                item.text === bookmark.text && 
-                item.filePath === bookmark.filePath && 
-                item.line === bookmark.line &&
-                item.timestamp.getTime() === bookmark.timestamp.getTime()
-            );
+            const currentIndex = this.history.findIndex(item => {
+                if (item.id && bookmark.id) {
+                    return item.id === bookmark.id;
+                }
+                return item.text === bookmark.text && 
+                       item.filePath === bookmark.filePath && 
+                       item.line === bookmark.line &&
+                       item.timestamp.getTime() === bookmark.timestamp.getTime();
+            });
 
             return currentIndex > 0;
         }
@@ -423,24 +495,30 @@ export class BookmarkHistory {
             const siblings = bookmark.parent.children;
             if (!siblings || siblings.length <= 1) return false;
 
-            const currentIndex = siblings.findIndex(child => 
-                child.text === bookmark.text && 
-                child.filePath === bookmark.filePath && 
-                child.line === bookmark.line &&
-                child.timestamp.getTime() === bookmark.timestamp.getTime()
-            );
+            const currentIndex = siblings.findIndex(child => {
+                if (child.id && bookmark.id) {
+                    return child.id === bookmark.id;
+                }
+                return child.text === bookmark.text && 
+                       child.filePath === bookmark.filePath && 
+                       child.line === bookmark.line &&
+                       child.timestamp.getTime() === bookmark.timestamp.getTime();
+            });
 
             return currentIndex >= 0 && currentIndex < siblings.length - 1;
         } else {
             // Check within top-level history
             if (this.history.length <= 1) return false;
 
-            const currentIndex = this.history.findIndex(item => 
-                item.text === bookmark.text && 
-                item.filePath === bookmark.filePath && 
-                item.line === bookmark.line &&
-                item.timestamp.getTime() === bookmark.timestamp.getTime()
-            );
+            const currentIndex = this.history.findIndex(item => {
+                if (item.id && bookmark.id) {
+                    return item.id === bookmark.id;
+                }
+                return item.text === bookmark.text && 
+                       item.filePath === bookmark.filePath && 
+                       item.line === bookmark.line &&
+                       item.timestamp.getTime() === bookmark.timestamp.getTime();
+            });
 
             return currentIndex >= 0 && currentIndex < this.history.length - 1;
         }
@@ -527,6 +605,7 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
 
     async handleDrag(source: BookmarkTreeItem[], dataTransfer: vscode.DataTransfer, token: vscode.CancellationToken): Promise<void> {
         const transferItem = new vscode.DataTransferItem(source.map(item => ({
+            id: item.bookmark.id,
             text: item.bookmark.text,
             filePath: item.bookmark.filePath,
             line: item.bookmark.line,
@@ -558,6 +637,7 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
 
             // Recreate the bookmark with proper structure
             const newBookmark: BookmarkItem = {
+                id: draggedData.id || generateId(),
                 text: draggedData.text,
                 filePath: draggedData.filePath,
                 line: draggedData.line,
@@ -578,6 +658,7 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
 
     private serializeBookmarks(bookmarks: BookmarkItem[]): any[] {
         return bookmarks.map(item => ({
+            id: item.id,
             text: item.text,
             filePath: item.filePath,
             line: item.line,
@@ -590,6 +671,7 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
     private deserializeBookmarks(serialized: any[], parent: BookmarkItem | null): BookmarkItem[] {
         return serialized.map(item => {
             const bookmark: BookmarkItem = {
+                id: item.id || generateId(),
                 text: item.text,
                 filePath: item.filePath,
                 line: item.line,
@@ -626,6 +708,11 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
     }
 
     private bookmarksEqual(a: BookmarkItem, b: BookmarkItem): boolean {
+        // Use ID comparison if both bookmarks have IDs
+        if (a.id && b.id) {
+            return a.id === b.id;
+        }
+        // Fallback to metadata comparison
         return a.text === b.text && 
                a.filePath === b.filePath && 
                a.line === b.line && 

@@ -4,6 +4,7 @@ import { BookmarkHistory, BookmarkTreeItem, BookmarkTreeDataProvider } from './c
 import { getWebviewContent, getEmptyWebviewContent } from './utils/webviewUtils';
 import { updateContextVariables, updateBookmarkDetailsPanel } from './utils/panelUtils';
 import { getDiagramWebviewContent } from './utils/diagramUtils';
+import { generateId } from './utils/idUtils';
 
 let bookmarkHistory: BookmarkHistory;
 let bookmarkTreeDataProvider: BookmarkTreeDataProvider;
@@ -76,6 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
         
         const bookmark: BookmarkItem = {
+            id: generateId(),
             text: text,
             filePath: document.fileName,
             line: position.line,
