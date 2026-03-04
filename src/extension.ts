@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
 import { BookmarkItem } from './types/bookmarkTypes';
 import { BookmarkHistory, BookmarkTreeItem, BookmarkTreeDataProvider } from './class/bookmarkClasses';
-import { getWebviewContent, getEmptyWebviewContent } from './utils/webviewUtils';
-import { updateContextVariables, updateBookmarkDetailsPanel } from './utils/panelUtils';
+import { updateContextVariables } from './utils/panelUtils';
 import { getDiagramWebviewContent } from './utils/diagramUtils';
 import { generateId } from './utils/idUtils';
+import { BookmarkDetailsViewProvider } from './utils/BookmarkDetailsViewProvider';
 
 let bookmarkHistory: BookmarkHistory;
 let bookmarkTreeDataProvider: BookmarkTreeDataProvider;
-let bookmarkDetailsPanel: vscode.WebviewPanel | undefined;
+let bookmarkDetailsProvider: BookmarkDetailsViewProvider;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Navigation extension is now active!');
@@ -23,11 +23,27 @@ export function activate(context: vscode.ExtensionContext) {
         dragAndDropController: bookmarkTreeDataProvider
     });
     
+    // Register webview view provider for bookmark details
+    bookmarkDetailsProvider = new BookmarkDetailsViewProvider(context.extensionUri);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider('bookmarkDetailsView', bookmarkDetailsProvider)
+    );
+    
+    // Handle notes saving from webview
+    bookmarkDetailsProvider.onDidSaveNotes((data) => {
+        bookmarkHistory.updateBookmarkNotes(data.bookmarkKey, data.notes);
+    });
+    
     // Update context variables when selection changes
     treeView.onDidChangeSelection((e) => {
         const selectedItem = e.selection.length > 0 ? e.selection[0] : null;
         updateContextVariables(bookmarkHistory, selectedItem);
-        updateBookmarkDetailsPanel(bookmarkDetailsPanel, selectedItem, getWebviewContent);
+        // Update the webview view with selected bookmark
+        if (selectedItem) {
+            bookmarkDetailsProvider.updateContent(selectedItem.bookmark);
+        } else {
+            bookmarkDetailsProvider.clearContent();
+        }
     });
     
     // Update context variables when tree data changes
@@ -215,53 +231,13 @@ export function activate(context: vscode.ExtensionContext) {
             }
         }
         
-        if (bookmarkDetailsPanel) {
-            bookmarkDetailsPanel.reveal(vscode.ViewColumn.Two);
-            // Update with the specific bookmark if provided
-            if (selectedItem) {
-                updateBookmarkDetailsPanel(bookmarkDetailsPanel, selectedItem, getWebviewContent);
-            }
-        } else {
-            bookmarkDetailsPanel = vscode.window.createWebviewPanel(
-                'bookmarkDetails',
-                'Bookmark Details',
-                {
-                    viewColumn: vscode.ViewColumn.Two,
-                    preserveFocus: true
-                },
-                {
-                    enableScripts: true,
-                    retainContextWhenHidden: true
-                }
-            );
-
-            // Set initial content based on the specific item or current selection
-            if (selectedItem) {
-                bookmarkDetailsPanel.webview.html = getWebviewContent(selectedItem.bookmark);
-            } else if (treeView.selection.length > 0) {
-                updateBookmarkDetailsPanel(bookmarkDetailsPanel, treeView.selection[0], getWebviewContent);
-            } else {
-                bookmarkDetailsPanel.webview.html = getEmptyWebviewContent();
-            }
-
-            // Handle when panel is disposed
-            bookmarkDetailsPanel.onDidDispose(() => {
-                bookmarkDetailsPanel = undefined;
-            }, null, context.subscriptions);
-
-            // Handle messages from the webview
-            bookmarkDetailsPanel.webview.onDidReceiveMessage(
-                message => {
-                    switch (message.command) {
-                        case 'saveNotes':
-                            bookmarkHistory.updateBookmarkNotes(message.bookmarkKey, message.notes);
-                            return;
-                    }
-                },
-                undefined,
-                context.subscriptions
-            );
+        // Update the webview content with selected bookmark
+        if (selectedItem) {
+            bookmarkDetailsProvider.updateContent(selectedItem.bookmark);
         }
+        
+        // Focus the bookmark details panel
+        vscode.commands.executeCommand('bookmarkDetailsView.focus');
     });
 
     // Export bookmarks command

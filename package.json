@@ -19,13 +19,6 @@
           "title": "Bookmarks",
           "icon": "$(bookmark)"
         }
-      ],
-      "panel": [
-        {
-          "id": "bookmark-details",
-          "title": "Bookmark Details",
-          "icon": "$(info)"
-        }
       ]
     },
     "views": {
@@ -35,12 +28,10 @@
           "name": "Bookmark History",
           "when": "true",
           "icon": "$(bookmark)"
-        }
-      ],
-      "bookmark-details": [
+        },
         {
           "id": "bookmarkDetailsView",
-          "name": "Selected Bookmark",
+          "name": "Bookmark Details",
           "when": "true",
           "type": "webview"
         }
