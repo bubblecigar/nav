@@ -4,4 +4,6 @@ export interface BookmarkItem {
     line: number;
     character: number;
     timestamp: Date;
+    children?: BookmarkItem[];
+    parent?: BookmarkItem;
 }

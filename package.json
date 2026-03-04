@@ -65,6 +65,16 @@
         "command": "nav-extension.focusBookmarkExplorer",
         "title": "Focus Bookmark Explorer",
         "icon": "$(search-view-icon)"
+      },
+      {
+        "command": "nav-extension.setAsParent",
+        "title": "Set as Parent",
+        "icon": "$(folder)"
+      },
+      {
+        "command": "nav-extension.addChildBookmark",
+        "title": "Add Child Bookmark",
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -88,13 +98,31 @@
       "view/item/context": [
         {
           "command": "nav-extension.removeBookmark",
-          "when": "view == bookmarkExplorer && viewItem == bookmarkItem",
+          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
           "group": "inline"
+        },
+        {
+          "command": "nav-extension.setAsParent",
+          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
+          "group": "bookmark@1"
+        },
+        {
+          "command": "nav-extension.addChildBookmark",
+          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
+          "group": "bookmark@2"
         }
       ],
       "commandPalette": [
         {
           "command": "nav-extension.removeBookmark",
+          "when": "false"
+        },
+        {
+          "command": "nav-extension.setAsParent",
+          "when": "false"
+        },
+        {
+          "command": "nav-extension.addChildBookmark",
           "when": "false"
         }
       ]

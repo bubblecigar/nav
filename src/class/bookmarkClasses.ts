@@ -16,14 +16,8 @@ export class BookmarkHistory {
 
     private async saveToStorage(): Promise<void> {
         try {
-            // Convert BookmarkItems to serializable objects
-            const serializedHistory = this.history.map(item => ({
-                text: item.text,
-                filePath: item.filePath,
-                line: item.line,
-                character: item.character,
-                timestamp: item.timestamp.toISOString() // Convert Date to string
-            }));
+            // Convert BookmarkItems to serializable objects with nested structure
+            const serializedHistory = this.serializeBookmarks(this.history);
             
             await this.context.globalState.update(this.storageKey, serializedHistory);
         } catch (error) {
@@ -31,26 +25,25 @@ export class BookmarkHistory {
         }
     }
 
+    private serializeBookmarks(bookmarks: BookmarkItem[]): any[] {
+        return bookmarks.map(item => ({
+            text: item.text,
+            filePath: item.filePath,
+            line: item.line,
+            character: item.character,
+            timestamp: item.timestamp.toISOString(),
+            children: item.children ? this.serializeBookmarks(item.children) : undefined
+        }));
+    }
+
     private loadFromStorage(): void {
         try {
             const stored = this.context.globalState.get<any[]>(this.storageKey, []);
             
-            // Convert serialized objects back to BookmarkItems
-            this.history = stored.map(item => ({
-                text: item.text,
-                filePath: item.filePath,
-                line: item.line,
-                character: item.character,
-                timestamp: new Date(item.timestamp) // Convert string back to Date
-            })).filter(item => {
-                // Filter out invalid entries
-                return item.text && item.filePath && 
-                       typeof item.line === 'number' && 
-                       typeof item.character === 'number' && 
-                       item.timestamp instanceof Date && !isNaN(item.timestamp.getTime());
-            });
+            // Convert serialized objects back to BookmarkItems with nested structure
+            this.history = this.deserializeBookmarks(stored, null);
             
-            // Ensure we don't exceed max size
+            // Ensure we don't exceed max size (count only top-level items)
             if (this.history.length > this.maxSize) {
                 this.history = this.history.slice(0, this.maxSize);
             }
@@ -60,6 +53,36 @@ export class BookmarkHistory {
             console.error('Failed to load bookmark history:', error);
             this.history = [];
         }
+    }
+
+    private deserializeBookmarks(serialized: any[], parent: BookmarkItem | null): BookmarkItem[] {
+        return serialized.map(item => {
+            if (!this.isValidBookmarkData(item)) return null;
+            
+            const bookmark: BookmarkItem = {
+                text: item.text,
+                filePath: item.filePath,
+                line: item.line,
+                character: item.character,
+                timestamp: new Date(item.timestamp),
+                parent: parent || undefined,
+                children: undefined
+            };
+            
+            // Recursively deserialize children
+            if (item.children && Array.isArray(item.children)) {
+                bookmark.children = this.deserializeBookmarks(item.children, bookmark);
+            }
+            
+            return bookmark;
+        }).filter((item): item is BookmarkItem => item !== null);
+    }
+
+    private isValidBookmarkData(item: any): boolean {
+        return item.text && item.filePath && 
+               typeof item.line === 'number' && 
+               typeof item.character === 'number' && 
+               item.timestamp && !isNaN(new Date(item.timestamp).getTime());
     }
 
     add(item: BookmarkItem) {
@@ -105,6 +128,57 @@ export class BookmarkHistory {
     refresh(): void {
         this._onDidChangeTreeData.fire();
     }
+
+    addChildBookmark(parentBookmark: BookmarkItem, childBookmark: BookmarkItem): void {
+        if (!parentBookmark.children) {
+            parentBookmark.children = [];
+        }
+        
+        childBookmark.parent = parentBookmark;
+        
+        // Remove duplicate child if exists
+        parentBookmark.children = parentBookmark.children.filter(child =>
+            !(child.text === childBookmark.text && 
+              child.filePath === childBookmark.filePath && 
+              child.line === childBookmark.line)
+        );
+        
+        parentBookmark.children.unshift(childBookmark);
+        
+        this._onDidChangeTreeData.fire();
+        this.saveToStorage();
+    }
+
+    getAllBookmarks(): BookmarkItem[] {
+        const allBookmarks: BookmarkItem[] = [];
+        
+        const addBookmarkAndChildren = (bookmark: BookmarkItem) => {
+            allBookmarks.push(bookmark);
+            if (bookmark.children) {
+                bookmark.children.forEach(addBookmarkAndChildren);
+            }
+        };
+        
+        this.history.forEach(addBookmarkAndChildren);
+        return allBookmarks;
+    }
+
+    findBookmark(text: string, filePath: string, line: number): BookmarkItem | null {
+        const search = (bookmarks: BookmarkItem[]): BookmarkItem | null => {
+            for (const bookmark of bookmarks) {
+                if (bookmark.text === text && bookmark.filePath === filePath && bookmark.line === line) {
+                    return bookmark;
+                }
+                if (bookmark.children) {
+                    const found = search(bookmark.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        
+        return search(this.history);
+    }
 }
 
 export class BookmarkTreeItem extends vscode.TreeItem {
@@ -124,11 +198,17 @@ export class BookmarkTreeItem extends vscode.TreeItem {
             arguments: [bookmark]
         };
         
-        // Set context value for context menu
-        this.contextValue = 'bookmarkItem';
+        // Set context value for context menu - distinguish parent vs child
+        this.contextValue = bookmark.children && bookmark.children.length > 0 ? 'bookmarkParent' : 'bookmarkItem';
         
-        // Set icon
-        this.iconPath = new vscode.ThemeIcon('bookmark');
+        // Set icon based on whether it has children
+        if (bookmark.children && bookmark.children.length > 0) {
+            this.iconPath = new vscode.ThemeIcon('folder');
+        } else if (bookmark.parent) {
+            this.iconPath = new vscode.ThemeIcon('bookmark-filled');
+        } else {
+            this.iconPath = new vscode.ThemeIcon('bookmark');
+        }
     }
 }
 
@@ -153,14 +233,27 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
 
     getChildren(element?: BookmarkTreeItem): Thenable<BookmarkTreeItem[]> {
         if (!element) {
-            // Root level - return all bookmarks
+            // Root level - return all top-level bookmarks
             const bookmarks = this.bookmarkHistory.getHistory();
             return Promise.resolve(
-                bookmarks.map(bookmark => 
-                    new BookmarkTreeItem(bookmark, vscode.TreeItemCollapsibleState.None)
-                )
+                bookmarks.map(bookmark => {
+                    const collapsibleState = bookmark.children && bookmark.children.length > 0
+                        ? vscode.TreeItemCollapsibleState.Collapsed
+                        : vscode.TreeItemCollapsibleState.None;
+                    return new BookmarkTreeItem(bookmark, collapsibleState);
+                })
+            );
+        } else {
+            // Child level - return children of the selected bookmark
+            const children = element.bookmark.children || [];
+            return Promise.resolve(
+                children.map(bookmark => {
+                    const collapsibleState = bookmark.children && bookmark.children.length > 0
+                        ? vscode.TreeItemCollapsibleState.Collapsed
+                        : vscode.TreeItemCollapsibleState.None;
+                    return new BookmarkTreeItem(bookmark, collapsibleState);
+                })
             );
         }
-        return Promise.resolve([]);
     }
 }
