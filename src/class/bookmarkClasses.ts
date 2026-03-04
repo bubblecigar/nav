@@ -91,12 +91,12 @@ export class BookmarkHistory {
             !(h.text === item.text && h.filePath === item.filePath && h.line === item.line)
         );
         
-        // Add to front of history
-        this.history.unshift(item);
+        // Add to end of history (oldest to newest)
+        this.history.push(item);
         
         // Maintain max size
         if (this.history.length > this.maxSize) {
-            this.history = this.history.slice(0, this.maxSize);
+            this.history = this.history.slice(-this.maxSize);
         }
         
         this._onDidChangeTreeData.fire();
@@ -165,7 +165,8 @@ export class BookmarkHistory {
               child.line === childBookmark.line)
         );
         
-        parentBookmark.children.unshift(childBookmark);
+        // Add to end of children (oldest to newest)
+        parentBookmark.children.push(childBookmark);
         
         this._onDidChangeTreeData.fire();
         this.saveToStorage();
@@ -223,14 +224,7 @@ export class BookmarkTreeItem extends vscode.TreeItem {
         // Set context value for context menu - distinguish parent vs child
         this.contextValue = bookmark.children && bookmark.children.length > 0 ? 'bookmarkParent' : 'bookmarkItem';
         
-        // Set icon based on whether it has children
-        if (bookmark.children && bookmark.children.length > 0) {
-            this.iconPath = new vscode.ThemeIcon('folder');
-        } else if (bookmark.parent) {
-            this.iconPath = new vscode.ThemeIcon('bookmark-filled');
-        } else {
-            this.iconPath = new vscode.ThemeIcon('bookmark');
-        }
+        this.iconPath = new vscode.ThemeIcon('bookmark');
     }
 }
 
