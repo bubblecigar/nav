@@ -21,75 +21,71 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                 font-family: var(--vscode-font-family);
                 color: var(--vscode-foreground);
                 background-color: var(--vscode-editor-background);
-                padding: 15px;
+                padding: 20px;
                 margin: 0;
+                line-height: 1.5;
             }
-            .detail-row { 
-                margin-bottom: 10px; 
-                display: flex;
-                flex-direction: column;
-            }
-            .detail-label { 
-                font-weight: bold; 
+            .bookmark-title {
+                font-size: 24px;
+                font-weight: bold;
                 color: var(--vscode-textLink-foreground);
-                margin-bottom: 3px;
-                font-size: 12px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            .detail-value { 
-                background-color: var(--vscode-editor-selectionBackground);
-                padding: 5px 8px;
-                border-radius: 3px;
-                font-family: var(--vscode-editor-font-family);
-                word-break: break-all;
-            }
-            .code-text {
-                font-family: var(--vscode-editor-font-family);
-                background-color: var(--vscode-textBlockQuote-background);
-                padding: 3px 6px;
-                border-radius: 2px;
-                border-left: 3px solid var(--vscode-textLink-foreground);
-            }
-            .hierarchy-info {
-                background-color: var(--vscode-editor-inactiveSelectionBackground);
-                padding: 8px;
+                margin-bottom: 20px;
+                padding: 15px;
+                border-left: 4px solid var(--vscode-textLink-foreground);
                 border-radius: 4px;
-                margin-top: 10px;
+                font-family: var(--vscode-editor-font-family);
+                word-break: break-word;
             }
             .notes-section {
-                margin-top: 15px;
-                padding: 10px;
-                background-color: var(--vscode-editor-inactiveSelectionBackground);
-                border-radius: 4px;
-                border-left: 3px solid var(--vscode-textLink-foreground);
+                margin-bottom: 30px;
+            }
+            .notes-header {
+                font-size: 18px;
+                font-weight: bold;
+                color: var(--vscode-textLink-foreground);
+                margin-bottom: 10px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
             }
             .notes-textarea {
                 width: 100%;
-                min-height: 100px;
-                padding: 8px;
+                min-height: 200px;
+                padding: 15px;
                 background-color: var(--vscode-input-background);
                 color: var(--vscode-input-foreground);
-                border: 1px solid var(--vscode-input-border);
-                border-radius: 2px;
+                border: 2px solid var(--vscode-input-border);
+                border-radius: 4px;
                 font-family: var(--vscode-editor-font-family);
                 font-size: 14px;
                 resize: vertical;
                 box-sizing: border-box;
+                line-height: 1.6;
             }
             .notes-textarea:focus {
                 outline: none;
                 border-color: var(--vscode-focusBorder);
+                box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+            }
+            .notes-textarea::placeholder {
+                color: var(--vscode-input-placeholderForeground);
+                font-style: italic;
+            }
+            .notes-controls {
+                margin-top: 12px;
+                display: flex;
+                align-items: center;
+                gap: 15px;
             }
             .save-button {
-                margin-top: 8px;
-                padding: 6px 12px;
+                padding: 8px 16px;
                 background-color: var(--vscode-button-background);
                 color: var(--vscode-button-foreground);
                 border: none;
-                border-radius: 2px;
+                border-radius: 3px;
                 cursor: pointer;
-                font-size: 12px;
+                font-size: 13px;
+                font-weight: 500;
             }
             .save-button:hover {
                 background-color: var(--vscode-button-hoverBackground);
@@ -100,63 +96,83 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                 cursor: not-allowed;
             }
             .status-message {
-                margin-top: 5px;
+                font-size: 12px;
+                color: var(--vscode-descriptionForeground);
+            }
+            .metadata-section {
+                padding-top: 20px;
+                border-top: 1px solid var(--vscode-panel-border);
+            }
+            .metadata-header {
+                font-size: 14px;
+                font-weight: 500;
+                color: var(--vscode-textLink-foreground);
+                margin-bottom: 10px;
+            }
+            .meta-item {
+                margin-bottom: 6px;
                 font-size: 11px;
                 color: var(--vscode-descriptionForeground);
             }
-            .no-selection {
-                text-align: center;
-                color: var(--vscode-descriptionForeground);
-                font-style: italic;
-                margin-top: 50px;
+            .meta-label {
+                font-weight: 500;
+                color: var(--vscode-foreground);
+                margin-right: 8px;
+                min-width: 70px;
+                display: inline-block;
+            }
+            .meta-value {
+                font-family: var(--vscode-editor-font-family);
+                padding: 1px 4px;
+                border-radius: 2px;
+                font-size: 10px;
             }
         </style>
     </head>
     <body>
-        <div class="detail-row">
-            <div class="detail-label">Text</div>
-            <div class="detail-value code-text">${bookmark.text}</div>
-        </div>
-        
-        <div class="detail-row">
-            <div class="detail-label">File Path</div>
-            <div class="detail-value">${bookmark.filePath}</div>
-        </div>
-        
-        <div class="detail-row">
-            <div class="detail-label">Relative Path</div>
-            <div class="detail-value">${relativePath}</div>
-        </div>
-        
-        <div class="detail-row">
-            <div class="detail-label">Location</div>
-            <div class="detail-value">Line ${bookmark.line + 1}, Column ${bookmark.character + 1}</div>
-        </div>
-        
-        <div class="detail-row">
-            <div class="detail-label">Created</div>
-            <div class="detail-value">${bookmark.timestamp.toLocaleString()}</div>
-        </div>
-        
-        <div class="hierarchy-info">
-            <div class="detail-label">Hierarchy</div>
-            <div class="detail-value">
-                ${hasParent ? '📁 Has Parent: ' + (bookmark.parent?.text || 'Unknown') : '🏠 Root Level'}
-                <br>
-                ${hasChildren ? '📂 Children: ' + bookmark.children!.length : '📄 No Children'}
-            </div>
-        </div>
+        <div class="bookmark-title">${bookmark.text}</div>
         
         <div class="notes-section">
-            <div class="detail-label">📝 Notes</div>
+            <div class="notes-header">
+                📝 Notes
+            </div>
             <textarea 
                 id="notesTextarea" 
                 class="notes-textarea" 
-                placeholder="Add your notes here..."
+                placeholder="Add your personal notes, thoughts, or context about this bookmark..."
                 data-bookmark-key="${bookmark.filePath}:${bookmark.line}:${bookmark.character}:${bookmark.timestamp.getTime()}"
             >${notes}</textarea>
-            <button id="saveNotesBtn" class="save-button">Save Notes</button>
-            <div id="statusMessage" class="status-message"></div>
+            <div class="notes-controls">
+                <button id="saveNotesBtn" class="save-button">Save Notes</button>
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+        </div>
+        
+        <div class="metadata-section">
+            <div class="metadata-header">Debug Information</div>
+            <div class="meta-item">
+                <span class="meta-label">File:</span>
+                <span class="meta-value">${bookmark.filePath}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Relative:</span>
+                <span class="meta-value">${relativePath}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Location:</span>
+                <span class="meta-value">Line ${bookmark.line + 1}, Column ${bookmark.character + 1}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Created:</span>
+                <span class="meta-value">${bookmark.timestamp.toLocaleString()}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Hierarchy:</span>
+                <span class="meta-value">
+                    ${hasParent ? '📁 Has Parent: ' + (bookmark.parent?.text || 'Unknown') : '🏠 Root Level'}
+                    ${hasChildren ? ', 📂 Children: ' + bookmark.children!.length : ', 📄 No Children'}
+                </span>
+            </div>
         </div>
         
         <script>
