@@ -228,9 +228,12 @@ export class BookmarkTreeItem extends vscode.TreeItem {
     }
 }
 
-export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<BookmarkTreeItem> {
+export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<BookmarkTreeItem>, vscode.TreeDragAndDropController<BookmarkTreeItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<BookmarkTreeItem | undefined | null | void> = new vscode.EventEmitter<BookmarkTreeItem | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<BookmarkTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
+
+    dropMimeTypes = ['application/vnd.code.tree.bookmarkExplorer'];
+    dragMimeTypes = ['application/vnd.code.tree.bookmarkExplorer'];
 
     constructor(private bookmarkHistory: BookmarkHistory) {
         // Listen to bookmark history changes
@@ -271,5 +274,86 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
                 })
             );
         }
+    }
+
+    async handleDrag(source: BookmarkTreeItem[], dataTransfer: vscode.DataTransfer, token: vscode.CancellationToken): Promise<void> {
+        const transferItem = new vscode.DataTransferItem(source.map(item => ({
+            text: item.bookmark.text,
+            filePath: item.bookmark.filePath,
+            line: item.bookmark.line,
+            character: item.bookmark.character,
+            timestamp: item.bookmark.timestamp.toISOString(),
+            children: item.bookmark.children ? this.serializeBookmarks(item.bookmark.children) : undefined
+        })));
+        dataTransfer.set(this.dragMimeTypes[0], transferItem);
+    }
+
+    async handleDrop(target: BookmarkTreeItem | undefined, dataTransfer: vscode.DataTransfer, token: vscode.CancellationToken): Promise<void> {
+        const transferItem = dataTransfer.get(this.dropMimeTypes[0]);
+        if (!transferItem) return;
+
+        const draggedItems = transferItem.value as any[];
+        if (!draggedItems || draggedItems.length === 0) return;
+
+        for (const draggedData of draggedItems) {
+            // Remove the dragged bookmark from its current location
+            const draggedBookmark = this.findBookmarkInHistory(draggedData);
+            if (!draggedBookmark) continue;
+
+            this.bookmarkHistory.remove(draggedBookmark);
+
+            // Recreate the bookmark with proper structure
+            const newBookmark: BookmarkItem = {
+                text: draggedData.text,
+                filePath: draggedData.filePath,
+                line: draggedData.line,
+                character: draggedData.character,
+                timestamp: new Date(draggedData.timestamp),
+                children: draggedData.children ? this.deserializeBookmarks(draggedData.children, null) : undefined
+            };
+
+            if (target) {
+                // Dropped on another bookmark - make it a child
+                this.bookmarkHistory.addChildBookmark(target.bookmark, newBookmark);
+            } else {
+                // Dropped on empty space - make it a top-level bookmark
+                this.bookmarkHistory.add(newBookmark);
+            }
+        }
+    }
+
+    private serializeBookmarks(bookmarks: BookmarkItem[]): any[] {
+        return bookmarks.map(item => ({
+            text: item.text,
+            filePath: item.filePath,
+            line: item.line,
+            character: item.character,
+            timestamp: item.timestamp.toISOString(),
+            children: item.children ? this.serializeBookmarks(item.children) : undefined
+        }));
+    }
+
+    private deserializeBookmarks(serialized: any[], parent: BookmarkItem | null): BookmarkItem[] {
+        return serialized.map(item => {
+            const bookmark: BookmarkItem = {
+                text: item.text,
+                filePath: item.filePath,
+                line: item.line,
+                character: item.character,
+                timestamp: new Date(item.timestamp),
+                parent: parent || undefined,
+                children: undefined
+            };
+            
+            if (item.children && Array.isArray(item.children)) {
+                bookmark.children = this.deserializeBookmarks(item.children, bookmark);
+            }
+            
+            return bookmark;
+        });
+    }
+
+    private findBookmarkInHistory(data: any): BookmarkItem | null {
+        return this.bookmarkHistory.findBookmark(data.text, data.filePath, data.line);
     }
 }

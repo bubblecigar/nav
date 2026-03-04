@@ -22,7 +22,7 @@
       ]
     },
     "views": {
-      "bookmark-explorer": [
+      "explorer": [
         {
           "id": "bookmarkExplorer",
           "name": "Bookmark History",

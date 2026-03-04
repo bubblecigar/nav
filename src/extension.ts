@@ -15,7 +15,8 @@ export function activate(context: vscode.ExtensionContext) {
     // Register tree data provider
     const treeView = vscode.window.createTreeView('bookmarkExplorer', {
         treeDataProvider: bookmarkTreeDataProvider,
-        showCollapseAll: true
+        showCollapseAll: true,
+        dragAndDropController: bookmarkTreeDataProvider
     });
     
     // Hello World command
