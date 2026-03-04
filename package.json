@@ -110,6 +110,16 @@
         "command": "nav-extension.showBookmarkDetails",
         "title": "Show Bookmark Details",
         "icon": "$(eye)"
+      },
+      {
+        "command": "nav-extension.exportBookmarks",
+        "title": "Export Bookmarks",
+        "icon": "$(export)"
+      },
+      {
+        "command": "nav-extension.importBookmarks",
+        "title": "Import Bookmarks",
+        "icon": "$(import)"
       }
     ],
     "menus": {
@@ -128,6 +138,16 @@
           "command": "nav-extension.expandAllBookmarks",
           "when": "view == bookmarkExplorer",
           "group": "navigation@3"
+        },
+        {
+          "command": "nav-extension.exportBookmarks",
+          "when": "view == bookmarkExplorer",
+          "group": "io@1"
+        },
+        {
+          "command": "nav-extension.importBookmarks",
+          "when": "view == bookmarkExplorer",
+          "group": "io@2"
         }
       ],
       "view/item/context": [

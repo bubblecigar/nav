@@ -242,6 +242,72 @@ export class BookmarkHistory {
         return findAndUpdate(this.history);
     }
 
+    exportToJson(): string {
+        const exportData = {
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            bookmarks: this.serializeBookmarks(this.history)
+        };
+        return JSON.stringify(exportData, null, 2);
+    }
+
+    importFromJson(jsonString: string): boolean {
+        try {
+            const importData = JSON.parse(jsonString);
+            
+            // Validate the import data structure
+            if (!importData.bookmarks || !Array.isArray(importData.bookmarks)) {
+                throw new Error('Invalid bookmark data format');
+            }
+            
+            // Deserialize the bookmarks
+            const importedBookmarks = this.deserializeBookmarks(importData.bookmarks, null);
+            
+            // Replace current history with imported bookmarks
+            this.history = importedBookmarks;
+            
+            // Save to storage and update UI
+            this._onDidChangeTreeData.fire();
+            this.saveToStorage();
+            
+            return true;
+        } catch (error) {
+            console.error('Failed to import bookmarks:', error);
+            return false;
+        }
+    }
+
+    mergeFromJson(jsonString: string): boolean {
+        try {
+            const importData = JSON.parse(jsonString);
+            
+            // Validate the import data structure
+            if (!importData.bookmarks || !Array.isArray(importData.bookmarks)) {
+                throw new Error('Invalid bookmark data format');
+            }
+            
+            // Deserialize the bookmarks
+            const importedBookmarks = this.deserializeBookmarks(importData.bookmarks, null);
+            
+            // Merge with existing history (add to end)
+            this.history.push(...importedBookmarks);
+            
+            // Ensure we don't exceed max size
+            if (this.history.length > this.maxSize) {
+                this.history = this.history.slice(-this.maxSize);
+            }
+            
+            // Save to storage and update UI
+            this._onDidChangeTreeData.fire();
+            this.saveToStorage();
+            
+            return true;
+        } catch (error) {
+            console.error('Failed to merge bookmarks:', error);
+            return false;
+        }
+    }
+
     moveBookmarkUp(bookmark: BookmarkItem): boolean {
         if (bookmark.parent) {
             // Move within parent's children

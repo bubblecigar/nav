@@ -359,6 +359,84 @@ export function activate(context: vscode.ExtensionContext) {
             );
         }
     });
+
+    // Export bookmarks command
+    let exportBookmarksDisposable = vscode.commands.registerCommand('nav-extension.exportBookmarks', async () => {
+        try {
+            const jsonData = bookmarkHistory.exportToJson();
+            const defaultFileName = `bookmarks-${new Date().toISOString().split('T')[0]}.json`;
+            
+            const uri = await vscode.window.showSaveDialog({
+                filters: {
+                    'JSON Files': ['json'],
+                    'All Files': ['*']
+                },
+                defaultUri: vscode.Uri.file(defaultFileName)
+            });
+
+            if (uri) {
+                await vscode.workspace.fs.writeFile(uri, Buffer.from(jsonData, 'utf8'));
+                vscode.window.showInformationMessage(`Bookmarks exported to ${uri.fsPath}`);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to export bookmarks: ${error}`);
+        }
+    });
+
+    // Import bookmarks command
+    let importBookmarksDisposable = vscode.commands.registerCommand('nav-extension.importBookmarks', async () => {
+        try {
+            const uris = await vscode.window.showOpenDialog({
+                filters: {
+                    'JSON Files': ['json'],
+                    'All Files': ['*']
+                },
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                openLabel: 'Import Bookmarks'
+            });
+
+            if (uris && uris.length > 0) {
+                const fileUri = uris[0];
+                const fileContent = await vscode.workspace.fs.readFile(fileUri);
+                const jsonString = Buffer.from(fileContent).toString('utf8');
+                
+                // Ask user whether to replace or merge
+                const action = await vscode.window.showQuickPick([
+                    {
+                        label: 'Replace All',
+                        description: 'Replace all existing bookmarks with imported ones',
+                        detail: 'This will delete your current bookmarks'
+                    },
+                    {
+                        label: 'Merge',
+                        description: 'Add imported bookmarks to existing ones',
+                        detail: 'This will keep your current bookmarks and add the new ones'
+                    }
+                ], {
+                    placeHolder: 'How would you like to import the bookmarks?'
+                });
+
+                if (action) {
+                    let success = false;
+                    if (action.label === 'Replace All') {
+                        success = bookmarkHistory.importFromJson(jsonString);
+                    } else {
+                        success = bookmarkHistory.mergeFromJson(jsonString);
+                    }
+
+                    if (success) {
+                        vscode.window.showInformationMessage(`Bookmarks ${action.label === 'Replace All' ? 'imported' : 'merged'} successfully from ${fileUri.fsPath}`);
+                    } else {
+                        vscode.window.showErrorMessage('Failed to import bookmarks. Please check the file format.');
+                    }
+                }
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to import bookmarks: ${error}`);
+        }
+    });
     
     context.subscriptions.push(
         treeView,
@@ -374,7 +452,9 @@ export function activate(context: vscode.ExtensionContext) {
         moveBookmarkUpDisposable,
         moveBookmarkDownDisposable,
         expandAllDisposable,
-        showBookmarkDetailsDisposable
+        showBookmarkDetailsDisposable,
+        exportBookmarksDisposable,
+        importBookmarksDisposable
     );
 }
 
