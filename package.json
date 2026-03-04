@@ -88,11 +88,6 @@
         "icon": "$(expand-all)"
       },
       {
-        "command": "nav-extension.showBookmarkDetails",
-        "title": "Show Bookmark Details",
-        "icon": "$(eye)"
-      },
-      {
         "command": "nav-extension.exportBookmarks",
         "title": "Export Bookmarks",
         "icon": "$(export)"
@@ -140,11 +135,6 @@
         }
       ],
       "view/item/context": [
-        {
-          "command": "nav-extension.showBookmarkDetails",
-          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
-          "group": "inline@1"
-        },
         {
           "command": "nav-extension.navigateToBookmark",
           "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
