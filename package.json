@@ -19,6 +19,13 @@
           "title": "Bookmarks",
           "icon": "$(bookmark)"
         }
+      ],
+      "panel": [
+        {
+          "id": "bookmark-details",
+          "title": "Bookmark Details",
+          "icon": "$(info)"
+        }
       ]
     },
     "views": {
@@ -28,6 +35,14 @@
           "name": "Bookmark History",
           "when": "true",
           "icon": "$(bookmark)"
+        }
+      ],
+      "bookmark-details": [
+        {
+          "id": "bookmarkDetailsView",
+          "name": "Selected Bookmark",
+          "when": "true",
+          "type": "webview"
         }
       ]
     },
@@ -90,6 +105,11 @@
         "command": "nav-extension.expandAllBookmarks",
         "title": "Expand All",
         "icon": "$(expand-all)"
+      },
+      {
+        "command": "nav-extension.showBookmarkDetails",
+        "title": "Show Bookmark Details",
+        "icon": "$(info)"
       }
     ],
     "menus": {
@@ -108,6 +128,11 @@
           "command": "nav-extension.expandAllBookmarks",
           "when": "view == bookmarkExplorer",
           "group": "navigation@3"
+        },
+        {
+          "command": "nav-extension.showBookmarkDetails",
+          "when": "view == bookmarkExplorer",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
