@@ -184,34 +184,37 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
             
             let originalNotes = textarea.value;
             let saveTimeout;
+            let statusTimeout;
             
-            // Track changes
+            // Auto-save on typing with debouncing
             textarea.addEventListener('input', function() {
                 const hasChanges = textarea.value !== originalNotes;
-                saveBtn.disabled = !hasChanges;
                 
                 if (hasChanges) {
-                    statusMsg.textContent = 'Unsaved changes';
-                    statusMsg.style.color = 'var(--vscode-errorForeground)';
+                    statusMsg.textContent = 'Typing...';
+                    statusMsg.style.color = 'var(--vscode-descriptionForeground)';
+                    
+                    // Clear any existing timeouts
+                    clearTimeout(saveTimeout);
+                    clearTimeout(statusTimeout);
+                    
+                    // Auto-save after 1 second of no typing
+                    saveTimeout = setTimeout(() => {
+                        saveNotes();
+                    }, 1000);
                 } else {
                     statusMsg.textContent = '';
                 }
                 
-                // Clear any existing timeout
-                clearTimeout(saveTimeout);
+                // Hide save button since auto-save is enabled
+                saveBtn.style.display = 'none';
             });
             
-            // Save button click
-            saveBtn.addEventListener('click', function() {
-                saveNotes();
-            });
-            
-            // Auto-save on blur (when user clicks away)
+            // Also save on blur for immediate feedback
             textarea.addEventListener('blur', function() {
                 if (textarea.value !== originalNotes) {
-                    saveTimeout = setTimeout(() => {
-                        saveNotes();
-                    }, 500);
+                    clearTimeout(saveTimeout);
+                    saveNotes();
                 }
             });
             
@@ -225,12 +228,12 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                 });
                 
                 originalNotes = notes;
-                saveBtn.disabled = true;
-                statusMsg.textContent = 'Saved';
+                statusMsg.textContent = 'Saved ✓';
                 statusMsg.style.color = 'var(--vscode-charts-green)';
                 
                 // Clear status message after 2 seconds
-                setTimeout(() => {
+                clearTimeout(statusTimeout);
+                statusTimeout = setTimeout(() => {
                     statusMsg.textContent = '';
                 }, 2000);
             }
@@ -239,11 +242,13 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
             textarea.addEventListener('keydown', function(e) {
                 if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                     e.preventDefault();
-                    if (textarea.value !== originalNotes) {
-                        saveNotes();
-                    }
+                    clearTimeout(saveTimeout);
+                    saveNotes();
                 }
             });
+            
+            // Initialize - hide save button since auto-save is enabled
+            saveBtn.style.display = 'none';
         </script>
     </body>
     </html>`;
