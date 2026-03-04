@@ -110,6 +110,11 @@
         "command": "nav-extension.importBookmarks",
         "title": "Import Bookmarks",
         "icon": "$(import)"
+      },
+      {
+        "command": "nav-extension.drawDiagram",
+        "title": "Draw Diagram",
+        "icon": "$(type-hierarchy)"
       }
     ],
     "menus": {
@@ -132,8 +137,11 @@
         {
           "command": "nav-extension.importBookmarks",
           "when": "view == bookmarkExplorer",
-          "group": "io@2"
-        },
+          "group": "io@2"        },
+        {
+          "command": "nav-extension.drawDiagram",
+          "when": "view == bookmarkExplorer",
+          "group": "visualization@1"        },
         {
           "command": "nav-extension.clearBookmarkHistory",
           "when": "view == bookmarkExplorer",

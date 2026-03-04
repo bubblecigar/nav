@@ -3,6 +3,7 @@ import { BookmarkItem } from './types/bookmarkTypes';
 import { BookmarkHistory, BookmarkTreeItem, BookmarkTreeDataProvider } from './class/bookmarkClasses';
 import { getWebviewContent, getEmptyWebviewContent } from './utils/webviewUtils';
 import { updateContextVariables, updateBookmarkDetailsPanel } from './utils/panelUtils';
+import { getDiagramWebviewContent } from './utils/diagramUtils';
 
 let bookmarkHistory: BookmarkHistory;
 let bookmarkTreeDataProvider: BookmarkTreeDataProvider;
@@ -331,6 +332,21 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     
+    // Draw diagram command
+    let drawDiagramDisposable = vscode.commands.registerCommand('nav-extension.drawDiagram', async () => {
+        const panel = vscode.window.createWebviewPanel(
+            'bookmarkDiagram',
+            'Bookmark Tree Diagram',
+            vscode.ViewColumn.One,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true
+            }
+        );
+        
+        panel.webview.html = getDiagramWebviewContent(bookmarkHistory.getHistory());
+    });
+    
     context.subscriptions.push(
         treeView,
         helloWorldDisposable,
@@ -345,7 +361,8 @@ export function activate(context: vscode.ExtensionContext) {
         expandAllDisposable,
         showBookmarkDetailsDisposable,
         exportBookmarksDisposable,
-        importBookmarksDisposable
+        importBookmarksDisposable,
+        drawDiagramDisposable
     );
 }
 
