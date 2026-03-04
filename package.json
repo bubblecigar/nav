@@ -57,16 +57,6 @@
         "icon": "$(clear-all)"
       },
       {
-        "command": "nav-extension.removeBookmark",
-        "title": "Remove Bookmark",
-        "icon": "$(close)"
-      },
-      {
-        "command": "nav-extension.refreshBookmarkTree",
-        "title": "Refresh",
-        "icon": "$(refresh)"
-      },
-      {
         "command": "nav-extension.focusBookmarkExplorer",
         "title": "Focus Bookmark Explorer",
         "icon": "$(search-view-icon)"
@@ -105,19 +95,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "nav-extension.refreshBookmarkTree",
+          "command": "nav-extension.clearBookmarkHistory",
           "when": "view == bookmarkExplorer",
           "group": "navigation@2"
         },
         {
-          "command": "nav-extension.clearBookmarkHistory",
-          "when": "view == bookmarkExplorer",
-          "group": "navigation@3"
-        },
-        {
           "command": "nav-extension.expandAllBookmarks",
           "when": "view == bookmarkExplorer",
-          "group": "navigation@4"
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -125,11 +110,6 @@
           "command": "nav-extension.navigateToBookmark",
           "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
           "group": "inline@1"
-        },
-        {
-          "command": "nav-extension.removeBookmark",
-          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
-          "group": "inline@2"
         },
         {
           "command": "nav-extension.moveBookmarkUp",
@@ -153,10 +133,6 @@
         }
       ],
       "commandPalette": [
-        {
-          "command": "nav-extension.removeBookmark",
-          "when": "false"
-        },
         {
           "command": "nav-extension.setAsParent",
           "when": "false"
