@@ -10,9 +10,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onView:bookmarkExplorer"
-  ],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -29,7 +26,8 @@
         {
           "id": "bookmarkExplorer",
           "name": "Bookmark History",
-          "when": "true"
+          "when": "true",
+          "icon": "$(bookmark)"
         }
       ]
     },
