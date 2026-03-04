@@ -111,8 +111,11 @@ export function activate(context: vscode.ExtensionContext) {
     });
     
     // Navigate to bookmark command
-    let navigateToBookmarkDisposable = vscode.commands.registerCommand('nav-extension.navigateToBookmark', async (bookmark: BookmarkItem) => {
+    let navigateToBookmarkDisposable = vscode.commands.registerCommand('nav-extension.navigateToBookmark', async (bookmarkOrTreeItem: BookmarkItem | BookmarkTreeItem) => {
         try {
+            // Handle both BookmarkItem and BookmarkTreeItem
+            const bookmark = 'bookmark' in bookmarkOrTreeItem ? bookmarkOrTreeItem.bookmark : bookmarkOrTreeItem;
+            
             const uri = vscode.Uri.file(bookmark.filePath);
             const document = await vscode.workspace.openTextDocument(uri);
             const editor = await vscode.window.showTextDocument(document);

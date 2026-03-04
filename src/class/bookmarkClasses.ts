@@ -356,13 +356,6 @@ export class BookmarkTreeItem extends vscode.TreeItem {
         this.tooltip = `${bookmark.text}\nFile: ${vscode.workspace.asRelativePath(bookmark.filePath)}\nLine: ${bookmark.line + 1}\nTime: ${bookmark.timestamp.toLocaleString()}`;
         this.description = `${vscode.workspace.asRelativePath(bookmark.filePath)}:${bookmark.line + 1}`;
         
-        // Set the command to navigate to bookmark when clicked
-        this.command = {
-            command: 'nav-extension.navigateToBookmark',
-            title: 'Navigate to Bookmark',
-            arguments: [bookmark]
-        };
-        
         // Set context value for context menu - distinguish parent vs child
         this.contextValue = bookmark.children && bookmark.children.length > 0 ? 'bookmarkParent' : 'bookmarkItem';
         

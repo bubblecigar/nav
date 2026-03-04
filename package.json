@@ -47,6 +47,11 @@
         "icon": "$(list-unordered)"
       },
       {
+        "command": "nav-extension.navigateToBookmark",
+        "title": "Go to Line",
+        "icon": "$(go-to-file)"
+      },
+      {
         "command": "nav-extension.clearBookmarkHistory",
         "title": "Clear All Bookmarks",
         "icon": "$(clear-all)"
@@ -107,9 +112,14 @@
       ],
       "view/item/context": [
         {
+          "command": "nav-extension.navigateToBookmark",
+          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
+          "group": "inline@1"
+        },
+        {
           "command": "nav-extension.removeBookmark",
           "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
-          "group": "inline"
+          "group": "inline@2"
         },
         {
           "command": "nav-extension.moveBookmarkUp",
