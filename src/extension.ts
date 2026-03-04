@@ -1,13 +1,5 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-
-interface BookmarkItem {
-    text: string;
-    filePath: string;
-    line: number;
-    character: number;
-    timestamp: Date;
-}
+import { BookmarkItem } from './types/bookmarkTypes';
 
 class BookmarkHistory {
     private history: BookmarkItem[] = [];
