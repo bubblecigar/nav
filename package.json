@@ -2,7 +2,7 @@
   "name": "nav-extension",
   "displayName": "Navigation Extension",
   "description": "A VS Code extension for enhanced navigation",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "local-dev",
   "engines": {
     "vscode": "^1.60.0"
@@ -126,11 +126,13 @@
         {
           "command": "nav-extension.importBookmarks",
           "when": "view == bookmarkExplorer",
-          "group": "io@2"        },
+          "group": "io@2"
+        },
         {
           "command": "nav-extension.drawDiagram",
           "when": "view == bookmarkExplorer",
-          "group": "visualization@1"        },
+          "group": "visualization@1"
+        },
         {
           "command": "nav-extension.clearBookmarkHistory",
           "when": "view == bookmarkExplorer",
@@ -208,7 +210,8 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "republish": "./republish-local.sh"
   },
   "devDependencies": {
     "@types/vscode": "^1.60.0",
