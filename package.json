@@ -11,13 +11,28 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:nav-extension.helloWorld",
-    "onCommand:nav-extension.bookmarkWord",
-    "onCommand:nav-extension.showBookmarkHistory",
-    "onCommand:nav-extension.clearBookmarkHistory"
+    "onView:bookmarkExplorer"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "bookmark-explorer",
+          "title": "Bookmarks",
+          "icon": "$(bookmark)"
+        }
+      ]
+    },
+    "views": {
+      "bookmark-explorer": [
+        {
+          "id": "bookmarkExplorer",
+          "name": "Bookmark History",
+          "when": "true"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "nav-extension.helloWorld",
@@ -25,17 +40,67 @@
       },
       {
         "command": "nav-extension.bookmarkWord",
-        "title": "Bookmark Word/Selection"
+        "title": "Bookmark Word/Selection",
+        "icon": "$(add)"
       },
       {
         "command": "nav-extension.showBookmarkHistory",
-        "title": "Show Bookmark History"
+        "title": "Show Bookmark History",
+        "icon": "$(list-unordered)"
       },
       {
         "command": "nav-extension.clearBookmarkHistory",
-        "title": "Clear Bookmark History"
+        "title": "Clear All Bookmarks",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "nav-extension.removeBookmark",
+        "title": "Remove Bookmark",
+        "icon": "$(close)"
+      },
+      {
+        "command": "nav-extension.refreshBookmarkTree",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "nav-extension.focusBookmarkExplorer",
+        "title": "Focus Bookmark Explorer",
+        "icon": "$(search-view-icon)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "nav-extension.bookmarkWord",
+          "when": "view == bookmarkExplorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "nav-extension.refreshBookmarkTree",
+          "when": "view == bookmarkExplorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "nav-extension.clearBookmarkHistory",
+          "when": "view == bookmarkExplorer",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "nav-extension.removeBookmark",
+          "when": "view == bookmarkExplorer && viewItem == bookmarkItem",
+          "group": "inline"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "nav-extension.removeBookmark",
+          "when": "false"
+        }
+      ]
+    },
     "keybindings": [
       {
         "command": "nav-extension.bookmarkWord",
@@ -47,6 +112,11 @@
         "command": "nav-extension.showBookmarkHistory",
         "key": "ctrl+shift+h",
         "mac": "cmd+shift+h"
+      },
+      {
+        "command": "nav-extension.focusBookmarkExplorer",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e"
       }
     ]
   },

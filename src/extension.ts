@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 
 interface BookmarkItem {
     text: string;
@@ -11,6 +12,8 @@ interface BookmarkItem {
 class BookmarkHistory {
     private history: BookmarkItem[] = [];
     private maxSize: number = 100;
+    private _onDidChangeTreeData: vscode.EventEmitter<BookmarkTreeItem | undefined | null | void> = new vscode.EventEmitter<BookmarkTreeItem | undefined | null | void>();
+    readonly onDidChangeTreeData: vscode.Event<BookmarkTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
     add(item: BookmarkItem) {
         // Remove duplicate if exists
@@ -25,6 +28,15 @@ class BookmarkHistory {
         if (this.history.length > this.maxSize) {
             this.history = this.history.slice(0, this.maxSize);
         }
+        
+        this._onDidChangeTreeData.fire();
+    }
+
+    remove(item: BookmarkItem) {
+        this.history = this.history.filter(h => 
+            !(h.text === item.text && h.filePath === item.filePath && h.line === item.line && h.timestamp === item.timestamp)
+        );
+        this._onDidChangeTreeData.fire();
     }
 
     getHistory(): BookmarkItem[] {
@@ -33,19 +45,90 @@ class BookmarkHistory {
 
     clear() {
         this.history = [];
+        this._onDidChangeTreeData.fire();
     }
 
     size(): number {
         return this.history.length;
     }
+
+    refresh(): void {
+        this._onDidChangeTreeData.fire();
+    }
+}
+
+class BookmarkTreeItem extends vscode.TreeItem {
+    constructor(
+        public readonly bookmark: BookmarkItem,
+        public readonly collapsibleState: vscode.TreeItemCollapsibleState
+    ) {
+        super(bookmark.text, collapsibleState);
+        
+        this.tooltip = `${bookmark.text}\nFile: ${vscode.workspace.asRelativePath(bookmark.filePath)}\nLine: ${bookmark.line + 1}\nTime: ${bookmark.timestamp.toLocaleString()}`;
+        this.description = `${vscode.workspace.asRelativePath(bookmark.filePath)}:${bookmark.line + 1}`;
+        
+        // Set the command to navigate to bookmark when clicked
+        this.command = {
+            command: 'nav-extension.navigateToBookmark',
+            title: 'Navigate to Bookmark',
+            arguments: [bookmark]
+        };
+        
+        // Set context value for context menu
+        this.contextValue = 'bookmarkItem';
+        
+        // Set icon
+        this.iconPath = new vscode.ThemeIcon('bookmark');
+    }
+}
+
+class BookmarkTreeDataProvider implements vscode.TreeDataProvider<BookmarkTreeItem> {
+    private _onDidChangeTreeData: vscode.EventEmitter<BookmarkTreeItem | undefined | null | void> = new vscode.EventEmitter<BookmarkTreeItem | undefined | null | void>();
+    readonly onDidChangeTreeData: vscode.Event<BookmarkTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
+
+    constructor(private bookmarkHistory: BookmarkHistory) {
+        // Listen to bookmark history changes
+        bookmarkHistory.onDidChangeTreeData(() => {
+            this._onDidChangeTreeData.fire();
+        });
+    }
+
+    refresh(): void {
+        this._onDidChangeTreeData.fire();
+    }
+
+    getTreeItem(element: BookmarkTreeItem): vscode.TreeItem {
+        return element;
+    }
+
+    getChildren(element?: BookmarkTreeItem): Thenable<BookmarkTreeItem[]> {
+        if (!element) {
+            // Root level - return all bookmarks
+            const bookmarks = this.bookmarkHistory.getHistory();
+            return Promise.resolve(
+                bookmarks.map(bookmark => 
+                    new BookmarkTreeItem(bookmark, vscode.TreeItemCollapsibleState.None)
+                )
+            );
+        }
+        return Promise.resolve([]);
+    }
 }
 
 let bookmarkHistory: BookmarkHistory;
+let bookmarkTreeDataProvider: BookmarkTreeDataProvider;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Navigation extension is now active!');
     
     bookmarkHistory = new BookmarkHistory();
+    bookmarkTreeDataProvider = new BookmarkTreeDataProvider(bookmarkHistory);
+    
+    // Register tree data provider
+    const treeView = vscode.window.createTreeView('bookmarkExplorer', {
+        treeDataProvider: bookmarkTreeDataProvider,
+        showCollapseAll: true
+    });
     
     // Hello World command
     let helloWorldDisposable = vscode.commands.registerCommand('nav-extension.helloWorld', () => {
@@ -99,7 +182,29 @@ export function activate(context: vscode.ExtensionContext) {
         );
     });
     
-    // Show bookmark history command
+    // Navigate to bookmark command
+    let navigateToBookmarkDisposable = vscode.commands.registerCommand('nav-extension.navigateToBookmark', async (bookmark: BookmarkItem) => {
+        try {
+            const uri = vscode.Uri.file(bookmark.filePath);
+            const document = await vscode.workspace.openTextDocument(uri);
+            const editor = await vscode.window.showTextDocument(document);
+            
+            const position = new vscode.Position(
+                bookmark.line,
+                bookmark.character
+            );
+            
+            editor.selection = new vscode.Selection(position, position);
+            editor.revealRange(new vscode.Range(position, position));
+            
+            // Focus back to editor
+            vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to navigate to bookmark: ${error}`);
+        }
+    });
+    
+    // Show bookmark history command (still available for command palette)
     let showHistoryDisposable = vscode.commands.registerCommand('nav-extension.showBookmarkHistory', async () => {
         const history = bookmarkHistory.getHistory();
         
@@ -120,17 +225,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
         
         if (selected) {
-            const uri = vscode.Uri.file(selected.bookmark.filePath);
-            const document = await vscode.workspace.openTextDocument(uri);
-            const editor = await vscode.window.showTextDocument(document);
-            
-            const position = new vscode.Position(
-                selected.bookmark.line,
-                selected.bookmark.character
-            );
-            
-            editor.selection = new vscode.Selection(position, position);
-            editor.revealRange(new vscode.Range(position, position));
+            vscode.commands.executeCommand('nav-extension.navigateToBookmark', selected.bookmark);
         }
     });
     
@@ -148,11 +243,32 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
     
+    // Remove single bookmark command
+    let removeBookmarkDisposable = vscode.commands.registerCommand('nav-extension.removeBookmark', (treeItem: BookmarkTreeItem) => {
+        bookmarkHistory.remove(treeItem.bookmark);
+        vscode.window.showInformationMessage(`Removed bookmark: "${treeItem.bookmark.text}"`);
+    });
+    
+    // Refresh tree view command
+    let refreshTreeDisposable = vscode.commands.registerCommand('nav-extension.refreshBookmarkTree', () => {
+        bookmarkTreeDataProvider.refresh();
+    });
+    
+    // Focus bookmark explorer command
+    let focusBookmarkExplorerDisposable = vscode.commands.registerCommand('nav-extension.focusBookmarkExplorer', () => {
+        vscode.commands.executeCommand('bookmarkExplorer.focus');
+    });
+    
     context.subscriptions.push(
+        treeView,
         helloWorldDisposable,
         bookmarkWordDisposable,
+        navigateToBookmarkDisposable,
         showHistoryDisposable,
-        clearHistoryDisposable
+        clearHistoryDisposable,
+        removeBookmarkDisposable,
+        refreshTreeDisposable,
+        focusBookmarkExplorerDisposable
     );
 }
 
