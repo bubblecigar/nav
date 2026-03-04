@@ -11,7 +11,10 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:nav-extension.helloWorld"
+    "onCommand:nav-extension.helloWorld",
+    "onCommand:nav-extension.bookmarkWord",
+    "onCommand:nav-extension.showBookmarkHistory",
+    "onCommand:nav-extension.clearBookmarkHistory"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -19,6 +22,31 @@
       {
         "command": "nav-extension.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "nav-extension.bookmarkWord",
+        "title": "Bookmark Word/Selection"
+      },
+      {
+        "command": "nav-extension.showBookmarkHistory",
+        "title": "Show Bookmark History"
+      },
+      {
+        "command": "nav-extension.clearBookmarkHistory",
+        "title": "Clear Bookmark History"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "nav-extension.bookmarkWord",
+        "key": "ctrl+shift+b",
+        "mac": "cmd+shift+b",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "nav-extension.showBookmarkHistory",
+        "key": "ctrl+shift+h",
+        "mac": "cmd+shift+h"
       }
     ]
   },
