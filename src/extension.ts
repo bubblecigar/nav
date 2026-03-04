@@ -21,8 +21,22 @@ export function activate(context: vscode.ExtensionContext) {
     
     // Update context variables when selection changes
     treeView.onDidChangeSelection((e) => {
-        if (e.selection.length > 0) {
-            const selectedItem = e.selection[0];
+        updateContextVariables(e.selection.length > 0 ? e.selection[0] : null);
+    });
+    
+    // Update context variables when tree data changes
+    bookmarkTreeDataProvider.onDidChangeTreeData(() => {
+        // Get current selection and update context
+        if (treeView.selection.length > 0) {
+            updateContextVariables(treeView.selection[0]);
+        } else {
+            updateContextVariables(null);
+        }
+    });
+    
+    // Helper function to update context variables
+    function updateContextVariables(selectedItem: BookmarkTreeItem | null) {
+        if (selectedItem) {
             const canMoveUp = bookmarkHistory.canMoveUp(selectedItem.bookmark);
             const canMoveDown = bookmarkHistory.canMoveDown(selectedItem.bookmark);
             
@@ -33,7 +47,7 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.commands.executeCommand('setContext', 'nav-extension.canMoveUp', false);
             vscode.commands.executeCommand('setContext', 'nav-extension.canMoveDown', false);
         }
-    });
+    }
     
     // Hello World command
     let helloWorldDisposable = vscode.commands.registerCommand('nav-extension.helloWorld', () => {
@@ -232,11 +246,6 @@ export function activate(context: vscode.ExtensionContext) {
         const success = bookmarkHistory.moveBookmarkUp(treeItem.bookmark);
         if (success) {
             vscode.window.showInformationMessage(`Moved "${treeItem.bookmark.text}" up`);
-            // Update context variables after move
-            const canMoveUp = bookmarkHistory.canMoveUp(treeItem.bookmark);
-            const canMoveDown = bookmarkHistory.canMoveDown(treeItem.bookmark);
-            vscode.commands.executeCommand('setContext', 'nav-extension.canMoveUp', canMoveUp);
-            vscode.commands.executeCommand('setContext', 'nav-extension.canMoveDown', canMoveDown);
         } else {
             vscode.window.showInformationMessage(`"${treeItem.bookmark.text}" is already at the top`);
         }
@@ -247,11 +256,6 @@ export function activate(context: vscode.ExtensionContext) {
         const success = bookmarkHistory.moveBookmarkDown(treeItem.bookmark);
         if (success) {
             vscode.window.showInformationMessage(`Moved "${treeItem.bookmark.text}" down`);
-            // Update context variables after move
-            const canMoveUp = bookmarkHistory.canMoveUp(treeItem.bookmark);
-            const canMoveDown = bookmarkHistory.canMoveDown(treeItem.bookmark);
-            vscode.commands.executeCommand('setContext', 'nav-extension.canMoveUp', canMoveUp);
-            vscode.commands.executeCommand('setContext', 'nav-extension.canMoveDown', canMoveDown);
         } else {
             vscode.window.showInformationMessage(`"${treeItem.bookmark.text}" is already at the bottom`);
         }
