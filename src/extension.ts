@@ -211,6 +211,26 @@ export function activate(context: vscode.ExtensionContext) {
         );
     });
     
+    // Move bookmark up command
+    let moveBookmarkUpDisposable = vscode.commands.registerCommand('nav-extension.moveBookmarkUp', (treeItem: BookmarkTreeItem) => {
+        const success = bookmarkHistory.moveBookmarkUp(treeItem.bookmark);
+        if (success) {
+            vscode.window.showInformationMessage(`Moved "${treeItem.bookmark.text}" up`);
+        } else {
+            vscode.window.showInformationMessage(`"${treeItem.bookmark.text}" is already at the top`);
+        }
+    });
+    
+    // Move bookmark down command
+    let moveBookmarkDownDisposable = vscode.commands.registerCommand('nav-extension.moveBookmarkDown', (treeItem: BookmarkTreeItem) => {
+        const success = bookmarkHistory.moveBookmarkDown(treeItem.bookmark);
+        if (success) {
+            vscode.window.showInformationMessage(`Moved "${treeItem.bookmark.text}" down`);
+        } else {
+            vscode.window.showInformationMessage(`"${treeItem.bookmark.text}" is already at the bottom`);
+        }
+    });
+    
     context.subscriptions.push(
         treeView,
         helloWorldDisposable,
@@ -222,7 +242,9 @@ export function activate(context: vscode.ExtensionContext) {
         refreshTreeDisposable,
         focusBookmarkExplorerDisposable,
         setAsParentDisposable,
-        addChildBookmarkDisposable
+        addChildBookmarkDisposable,
+        moveBookmarkUpDisposable,
+        moveBookmarkDownDisposable
     );
 }
 

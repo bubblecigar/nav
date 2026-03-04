@@ -202,6 +202,90 @@ export class BookmarkHistory {
         
         return search(this.history);
     }
+
+    save(): void {
+        this.saveToStorage();
+    }
+
+    moveBookmarkUp(bookmark: BookmarkItem): boolean {
+        if (bookmark.parent) {
+            // Move within parent's children
+            const siblings = bookmark.parent.children;
+            if (!siblings) return false;
+
+            const currentIndex = siblings.findIndex(child => 
+                child.text === bookmark.text && 
+                child.filePath === bookmark.filePath && 
+                child.line === bookmark.line &&
+                child.timestamp.getTime() === bookmark.timestamp.getTime()
+            );
+
+            if (currentIndex > 0) {
+                // Swap with previous sibling
+                [siblings[currentIndex - 1], siblings[currentIndex]] = [siblings[currentIndex], siblings[currentIndex - 1]];
+                this._onDidChangeTreeData.fire();
+                this.saveToStorage();
+                return true;
+            }
+        } else {
+            // Move within top-level history
+            const currentIndex = this.history.findIndex(item => 
+                item.text === bookmark.text && 
+                item.filePath === bookmark.filePath && 
+                item.line === bookmark.line &&
+                item.timestamp.getTime() === bookmark.timestamp.getTime()
+            );
+
+            if (currentIndex > 0) {
+                // Swap with previous item
+                [this.history[currentIndex - 1], this.history[currentIndex]] = [this.history[currentIndex], this.history[currentIndex - 1]];
+                this._onDidChangeTreeData.fire();
+                this.saveToStorage();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    moveBookmarkDown(bookmark: BookmarkItem): boolean {
+        if (bookmark.parent) {
+            // Move within parent's children
+            const siblings = bookmark.parent.children;
+            if (!siblings) return false;
+
+            const currentIndex = siblings.findIndex(child => 
+                child.text === bookmark.text && 
+                child.filePath === bookmark.filePath && 
+                child.line === bookmark.line &&
+                child.timestamp.getTime() === bookmark.timestamp.getTime()
+            );
+
+            if (currentIndex >= 0 && currentIndex < siblings.length - 1) {
+                // Swap with next sibling
+                [siblings[currentIndex], siblings[currentIndex + 1]] = [siblings[currentIndex + 1], siblings[currentIndex]];
+                this._onDidChangeTreeData.fire();
+                this.saveToStorage();
+                return true;
+            }
+        } else {
+            // Move within top-level history
+            const currentIndex = this.history.findIndex(item => 
+                item.text === bookmark.text && 
+                item.filePath === bookmark.filePath && 
+                item.line === bookmark.line &&
+                item.timestamp.getTime() === bookmark.timestamp.getTime()
+            );
+
+            if (currentIndex >= 0 && currentIndex < this.history.length - 1) {
+                // Swap with next item
+                [this.history[currentIndex], this.history[currentIndex + 1]] = [this.history[currentIndex + 1], this.history[currentIndex]];
+                this._onDidChangeTreeData.fire();
+                this.saveToStorage();
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 export class BookmarkTreeItem extends vscode.TreeItem {

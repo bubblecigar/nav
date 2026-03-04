@@ -75,6 +75,16 @@
         "command": "nav-extension.addChildBookmark",
         "title": "Add Child Bookmark",
         "icon": "$(add)"
+      },
+      {
+        "command": "nav-extension.moveBookmarkUp",
+        "title": "Move Up",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "nav-extension.moveBookmarkDown",
+        "title": "Move Down",
+        "icon": "$(arrow-down)"
       }
     ],
     "menus": {
@@ -102,6 +112,16 @@
           "group": "inline"
         },
         {
+          "command": "nav-extension.moveBookmarkUp",
+          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
+          "group": "reorder@1"
+        },
+        {
+          "command": "nav-extension.moveBookmarkDown",
+          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
+          "group": "reorder@2"
+        },
+        {
           "command": "nav-extension.setAsParent",
           "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
           "group": "bookmark@1"
@@ -123,6 +143,14 @@
         },
         {
           "command": "nav-extension.addChildBookmark",
+          "when": "false"
+        },
+        {
+          "command": "nav-extension.moveBookmarkUp",
+          "when": "false"
+        },
+        {
+          "command": "nav-extension.moveBookmarkDown",
           "when": "false"
         }
       ]
