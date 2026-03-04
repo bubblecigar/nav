@@ -41,14 +41,13 @@ export function activate(context: vscode.ExtensionContext) {
     
     // Hello World command
     let helloWorldDisposable = vscode.commands.registerCommand('nav-extension.helloWorld', () => {
-        vscode.window.showInformationMessage('Hello World from Navigation Extension!');
+        // Hello world command
     });
     
     // Bookmark current word command
     let bookmarkWordDisposable = vscode.commands.registerCommand('nav-extension.bookmarkWord', () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.showWarningMessage('No active editor found');
             return;
         }
 
@@ -87,16 +86,10 @@ export function activate(context: vscode.ExtensionContext) {
         if (selectedParentBookmark) {
             // Add as child to selected parent
             bookmarkHistory.addChildBookmark(selectedParentBookmark, bookmark);
-            vscode.window.showInformationMessage(
-                `Added "${text}" as child of "${selectedParentBookmark.text}"`
-            );
             selectedParentBookmark = null; // Clear selection after use
         } else {
             // Add as top-level bookmark
             bookmarkHistory.add(bookmark);
-            vscode.window.showInformationMessage(
-                `Bookmarked: "${text}" (${bookmarkHistory.size()} bookmarks total)`
-            );
         }
     });
     
@@ -121,7 +114,7 @@ export function activate(context: vscode.ExtensionContext) {
             // Focus back to editor
             vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
         } catch (error) {
-            vscode.window.showErrorMessage(`Failed to navigate to bookmark: ${error}`);
+            // Navigation failed
         }
     });
     
@@ -130,7 +123,6 @@ export function activate(context: vscode.ExtensionContext) {
         const history = bookmarkHistory.getHistory();
         
         if (history.length === 0) {
-            vscode.window.showInformationMessage('No bookmarks found');
             return;
         }
         
@@ -152,22 +144,12 @@ export function activate(context: vscode.ExtensionContext) {
     
     // Clear bookmark history command
     let clearHistoryDisposable = vscode.commands.registerCommand('nav-extension.clearBookmarkHistory', async () => {
-        const answer = await vscode.window.showWarningMessage(
-            'Are you sure you want to clear all bookmarks?',
-            'Yes',
-            'No'
-        );
-        
-        if (answer === 'Yes') {
-            bookmarkHistory.clear();
-            vscode.window.showInformationMessage('Bookmark history cleared');
-        }
+        bookmarkHistory.clear();
     });
     
     // Remove single bookmark command
     let removeBookmarkDisposable = vscode.commands.registerCommand('nav-extension.removeBookmark', (treeItem: BookmarkTreeItem) => {
         bookmarkHistory.remove(treeItem.bookmark);
-        vscode.window.showInformationMessage(`Removed bookmark: "${treeItem.bookmark.text}"`);
     });
     
     // Focus bookmark explorer command
@@ -178,16 +160,12 @@ export function activate(context: vscode.ExtensionContext) {
     // Set bookmark as parent command
     let setAsParentDisposable = vscode.commands.registerCommand('nav-extension.setAsParent', (treeItem: BookmarkTreeItem) => {
         selectedParentBookmark = treeItem.bookmark;
-        vscode.window.showInformationMessage(
-            `"${treeItem.bookmark.text}" selected as parent. Next bookmark will be added as its child.`
-        );
     });
     
     // Add child bookmark command
     let addChildBookmarkDisposable = vscode.commands.registerCommand('nav-extension.addChildBookmark', async (treeItem: BookmarkTreeItem) => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.showWarningMessage('No active editor found');
             return;
         }
 
@@ -224,9 +202,6 @@ export function activate(context: vscode.ExtensionContext) {
         };
         
         bookmarkHistory.addChildBookmark(treeItem.bookmark, childBookmark);
-        vscode.window.showInformationMessage(
-            `Added "${text}" as child of "${treeItem.bookmark.text}"`
-        );
     });
     
     // Move bookmark up command
@@ -235,16 +210,10 @@ export function activate(context: vscode.ExtensionContext) {
         const targetItem = treeItem || (treeView.selection.length > 0 ? treeView.selection[0] : null);
         
         if (!targetItem) {
-            vscode.window.showWarningMessage('No bookmark selected');
             return;
         }
         
-        const success = bookmarkHistory.moveBookmarkUp(targetItem.bookmark);
-        if (success) {
-            vscode.window.showInformationMessage(`Moved "${targetItem.bookmark.text}" up`);
-        } else {
-            vscode.window.showInformationMessage(`"${targetItem.bookmark.text}" is already at the top`);
-        }
+        bookmarkHistory.moveBookmarkUp(targetItem.bookmark);
     });
     
     // Move bookmark down command
@@ -253,16 +222,10 @@ export function activate(context: vscode.ExtensionContext) {
         const targetItem = treeItem || (treeView.selection.length > 0 ? treeView.selection[0] : null);
         
         if (!targetItem) {
-            vscode.window.showWarningMessage('No bookmark selected');
             return;
         }
         
-        const success = bookmarkHistory.moveBookmarkDown(targetItem.bookmark);
-        if (success) {
-            vscode.window.showInformationMessage(`Moved "${targetItem.bookmark.text}" down`);
-        } else {
-            vscode.window.showInformationMessage(`"${targetItem.bookmark.text}" is already at the bottom`);
-        }
+        bookmarkHistory.moveBookmarkDown(targetItem.bookmark);
     });
 
     // Expand all bookmarks command
@@ -287,8 +250,6 @@ export function activate(context: vscode.ExtensionContext) {
         // Get root items and expand them all
         const rootItems = bookmarkTreeDataProvider.getRootItems();
         await expandAllItems(rootItems);
-        
-        vscode.window.showInformationMessage('Expanded all bookmarks');
     });
 
     // Show bookmark details command
@@ -344,13 +305,7 @@ export function activate(context: vscode.ExtensionContext) {
                 message => {
                     switch (message.command) {
                         case 'saveNotes':
-                            const success = bookmarkHistory.updateBookmarkNotes(message.bookmarkKey, message.notes);
-                            if (success) {
-                                // Optionally show success message
-                                vscode.window.showInformationMessage('Notes saved successfully');
-                            } else {
-                                vscode.window.showErrorMessage('Failed to save notes');
-                            }
+                            bookmarkHistory.updateBookmarkNotes(message.bookmarkKey, message.notes);
                             return;
                     }
                 },
@@ -376,10 +331,9 @@ export function activate(context: vscode.ExtensionContext) {
 
             if (uri) {
                 await vscode.workspace.fs.writeFile(uri, Buffer.from(jsonData, 'utf8'));
-                vscode.window.showInformationMessage(`Bookmarks exported to ${uri.fsPath}`);
             }
         } catch (error) {
-            vscode.window.showErrorMessage(`Failed to export bookmarks: ${error}`);
+            // Export failed silently
         }
     });
 
@@ -419,22 +373,15 @@ export function activate(context: vscode.ExtensionContext) {
                 });
 
                 if (action) {
-                    let success = false;
                     if (action.label === 'Replace All') {
-                        success = bookmarkHistory.importFromJson(jsonString);
+                        bookmarkHistory.importFromJson(jsonString);
                     } else {
-                        success = bookmarkHistory.mergeFromJson(jsonString);
-                    }
-
-                    if (success) {
-                        vscode.window.showInformationMessage(`Bookmarks ${action.label === 'Replace All' ? 'imported' : 'merged'} successfully from ${fileUri.fsPath}`);
-                    } else {
-                        vscode.window.showErrorMessage('Failed to import bookmarks. Please check the file format.');
+                        bookmarkHistory.mergeFromJson(jsonString);
                     }
                 }
             }
         } catch (error) {
-            vscode.window.showErrorMessage(`Failed to import bookmarks: ${error}`);
+            // Import failed silently
         }
     });
     
