@@ -5,6 +5,7 @@ A VS Code extension for enhanced navigation capabilities.
 ## Features
 
 - **🎯 Bookmark Sidebar**: Dedicated activity bar panel for bookmark management
+- **💾 Persistent Storage**: Bookmarks are automatically saved and restored across VS Code sessions
 - **Word Bookmarking**: Bookmark any word or selected text in your files
 - **History Stack**: Maintains a history of bookmarked items (up to 100)
 - **Quick Navigation**: Click any bookmark to instantly jump to that location
@@ -20,6 +21,7 @@ A VS Code extension for enhanced navigation capabilities.
 - Tree view showing all bookmarks with file paths and line numbers
 - Hover tooltips with detailed bookmark information
 - Visual bookmark icons and timestamps
+- **Persistent across sessions** - bookmarks automatically saved and restored
 
 **🎛️ Toolbar Actions:**
 - **Add Bookmark** button - Bookmark current word/selection
@@ -29,6 +31,12 @@ A VS Code extension for enhanced navigation capabilities.
 **⚡ Context Menu Actions:**
 - Right-click any bookmark to **Remove** individual items
 - Click any bookmark to **Navigate** to that location
+
+**💾 Storage & Persistence:**
+- Bookmarks are automatically saved to VS Code's global storage
+- Persist across VS Code restarts and workspace changes
+- Robust error handling for storage operations
+- Automatic data validation and cleanup on load
 
 ### Bookmark Commands
 

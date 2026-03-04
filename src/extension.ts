@@ -14,6 +14,61 @@ class BookmarkHistory {
     private maxSize: number = 100;
     private _onDidChangeTreeData: vscode.EventEmitter<BookmarkTreeItem | undefined | null | void> = new vscode.EventEmitter<BookmarkTreeItem | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<BookmarkTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
+    private context: vscode.ExtensionContext;
+    private readonly storageKey = 'bookmarkHistory';
+
+    constructor(context: vscode.ExtensionContext) {
+        this.context = context;
+        this.loadFromStorage();
+    }
+
+    private async saveToStorage(): Promise<void> {
+        try {
+            // Convert BookmarkItems to serializable objects
+            const serializedHistory = this.history.map(item => ({
+                text: item.text,
+                filePath: item.filePath,
+                line: item.line,
+                character: item.character,
+                timestamp: item.timestamp.toISOString() // Convert Date to string
+            }));
+            
+            await this.context.globalState.update(this.storageKey, serializedHistory);
+        } catch (error) {
+            console.error('Failed to save bookmark history:', error);
+        }
+    }
+
+    private loadFromStorage(): void {
+        try {
+            const stored = this.context.globalState.get<any[]>(this.storageKey, []);
+            
+            // Convert serialized objects back to BookmarkItems
+            this.history = stored.map(item => ({
+                text: item.text,
+                filePath: item.filePath,
+                line: item.line,
+                character: item.character,
+                timestamp: new Date(item.timestamp) // Convert string back to Date
+            })).filter(item => {
+                // Filter out invalid entries
+                return item.text && item.filePath && 
+                       typeof item.line === 'number' && 
+                       typeof item.character === 'number' && 
+                       item.timestamp instanceof Date && !isNaN(item.timestamp.getTime());
+            });
+            
+            // Ensure we don't exceed max size
+            if (this.history.length > this.maxSize) {
+                this.history = this.history.slice(0, this.maxSize);
+            }
+            
+            this._onDidChangeTreeData.fire();
+        } catch (error) {
+            console.error('Failed to load bookmark history:', error);
+            this.history = [];
+        }
+    }
 
     add(item: BookmarkItem) {
         // Remove duplicate if exists
@@ -30,6 +85,7 @@ class BookmarkHistory {
         }
         
         this._onDidChangeTreeData.fire();
+        this.saveToStorage(); // Persist changes
     }
 
     remove(item: BookmarkItem) {
@@ -37,6 +93,7 @@ class BookmarkHistory {
             !(h.text === item.text && h.filePath === item.filePath && h.line === item.line && h.timestamp === item.timestamp)
         );
         this._onDidChangeTreeData.fire();
+        this.saveToStorage(); // Persist changes
     }
 
     getHistory(): BookmarkItem[] {
@@ -46,6 +103,7 @@ class BookmarkHistory {
     clear() {
         this.history = [];
         this._onDidChangeTreeData.fire();
+        this.saveToStorage(); // Persist changes
     }
 
     size(): number {
@@ -121,7 +179,7 @@ let bookmarkTreeDataProvider: BookmarkTreeDataProvider;
 export function activate(context: vscode.ExtensionContext) {
     console.log('Navigation extension is now active!');
     
-    bookmarkHistory = new BookmarkHistory();
+    bookmarkHistory = new BookmarkHistory(context);
     bookmarkTreeDataProvider = new BookmarkTreeDataProvider(bookmarkHistory);
     
     // Register tree data provider
