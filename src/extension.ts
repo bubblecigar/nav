@@ -279,6 +279,32 @@ export function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage(`"${targetItem.bookmark.text}" is already at the bottom`);
         }
     });
+
+    // Expand all bookmarks command
+    let expandAllDisposable = vscode.commands.registerCommand('nav-extension.expandAllBookmarks', async () => {
+        // Recursively expand all tree items
+        const expandAllItems = async (items: BookmarkTreeItem[]) => {
+            for (const item of items) {
+                if (item.bookmark.children && item.bookmark.children.length > 0) {
+                    await treeView.reveal(item, { expand: true });
+                    // Get children and recursively expand them
+                    const childItems = item.bookmark.children.map(child => {
+                        const collapsibleState = child.children && child.children.length > 0
+                            ? vscode.TreeItemCollapsibleState.Collapsed
+                            : vscode.TreeItemCollapsibleState.None;
+                        return new BookmarkTreeItem(child, collapsibleState);
+                    });
+                    await expandAllItems(childItems);
+                }
+            }
+        };
+        
+        // Get root items and expand them all
+        const rootItems = bookmarkTreeDataProvider.getRootItems();
+        await expandAllItems(rootItems);
+        
+        vscode.window.showInformationMessage('Expanded all bookmarks');
+    });
     
     context.subscriptions.push(
         treeView,
@@ -293,7 +319,8 @@ export function activate(context: vscode.ExtensionContext) {
         setAsParentDisposable,
         addChildBookmarkDisposable,
         moveBookmarkUpDisposable,
-        moveBookmarkDownDisposable
+        moveBookmarkDownDisposable,
+        expandAllDisposable
     );
 }
 

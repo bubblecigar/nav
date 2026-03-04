@@ -385,6 +385,19 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
         return element;
     }
 
+    getParent(element: BookmarkTreeItem): vscode.ProviderResult<BookmarkTreeItem> {
+        // If the bookmark has a parent, find and return the parent TreeItem
+        if (element.bookmark.parent) {
+            const parent = element.bookmark.parent;
+            const collapsibleState = parent.children && parent.children.length > 0
+                ? vscode.TreeItemCollapsibleState.Collapsed
+                : vscode.TreeItemCollapsibleState.None;
+            return new BookmarkTreeItem(parent, collapsibleState);
+        }
+        // Root level items have no parent
+        return undefined;
+    }
+
     getChildren(element?: BookmarkTreeItem): Thenable<BookmarkTreeItem[]> {
         if (!element) {
             // Root level - return all top-level bookmarks
@@ -490,5 +503,15 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
 
     private findBookmarkInHistory(data: any): BookmarkItem | null {
         return this.bookmarkHistory.findBookmark(data.text, data.filePath, data.line);
+    }
+
+    getRootItems(): BookmarkTreeItem[] {
+        const bookmarks = this.bookmarkHistory.getHistory();
+        return bookmarks.map(bookmark => {
+            const collapsibleState = bookmark.children && bookmark.children.length > 0
+                ? vscode.TreeItemCollapsibleState.Collapsed
+                : vscode.TreeItemCollapsibleState.None;
+            return new BookmarkTreeItem(bookmark, collapsibleState);
+        });
     }
 }

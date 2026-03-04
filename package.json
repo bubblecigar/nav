@@ -90,6 +90,11 @@
         "command": "nav-extension.moveBookmarkDown",
         "title": "Move Down",
         "icon": "$(arrow-down)"
+      },
+      {
+        "command": "nav-extension.expandAllBookmarks",
+        "title": "Expand All",
+        "icon": "$(expand-all)"
       }
     ],
     "menus": {
@@ -108,6 +113,11 @@
           "command": "nav-extension.clearBookmarkHistory",
           "when": "view == bookmarkExplorer",
           "group": "navigation@3"
+        },
+        {
+          "command": "nav-extension.expandAllBookmarks",
+          "when": "view == bookmarkExplorer",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
