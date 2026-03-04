@@ -6,7 +6,6 @@ import { updateContextVariables, updateBookmarkDetailsPanel } from './utils/pane
 
 let bookmarkHistory: BookmarkHistory;
 let bookmarkTreeDataProvider: BookmarkTreeDataProvider;
-let selectedParentBookmark: BookmarkItem | null = null;
 let bookmarkDetailsPanel: vscode.WebviewPanel | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -83,14 +82,8 @@ export function activate(context: vscode.ExtensionContext) {
             timestamp: new Date()
         };
         
-        if (selectedParentBookmark) {
-            // Add as child to selected parent
-            bookmarkHistory.addChildBookmark(selectedParentBookmark, bookmark);
-            selectedParentBookmark = null; // Clear selection after use
-        } else {
-            // Add as top-level bookmark
-            bookmarkHistory.add(bookmark);
-        }
+        // Add as top-level bookmark
+        bookmarkHistory.add(bookmark);
     });
     
     // Navigate to bookmark command
@@ -155,53 +148,6 @@ export function activate(context: vscode.ExtensionContext) {
     // Focus bookmark explorer command
     let focusBookmarkExplorerDisposable = vscode.commands.registerCommand('nav-extension.focusBookmarkExplorer', () => {
         vscode.commands.executeCommand('bookmarkExplorer.focus');
-    });
-    
-    // Set bookmark as parent command
-    let setAsParentDisposable = vscode.commands.registerCommand('nav-extension.setAsParent', (treeItem: BookmarkTreeItem) => {
-        selectedParentBookmark = treeItem.bookmark;
-    });
-    
-    // Add child bookmark command
-    let addChildBookmarkDisposable = vscode.commands.registerCommand('nav-extension.addChildBookmark', async (treeItem: BookmarkTreeItem) => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            return;
-        }
-
-        const document = editor.document;
-        const selection = editor.selection;
-        
-        let text: string;
-        let position: vscode.Position;
-        
-        if (selection.isEmpty) {
-            // No selection, get the word at cursor
-            position = selection.active;
-            const wordRange = document.getWordRangeAtPosition(position);
-            
-            if (!wordRange) {
-                vscode.window.showWarningMessage('No word found at cursor position');
-                return;
-            }
-            
-            text = document.getText(wordRange);
-            position = wordRange.start;
-        } else {
-            // Use selected text
-            text = document.getText(selection);
-            position = selection.start;
-        }
-        
-        const childBookmark: BookmarkItem = {
-            text: text,
-            filePath: document.fileName,
-            line: position.line,
-            character: position.character,
-            timestamp: new Date()
-        };
-        
-        bookmarkHistory.addChildBookmark(treeItem.bookmark, childBookmark);
     });
     
     // Move bookmark up command
@@ -394,8 +340,6 @@ export function activate(context: vscode.ExtensionContext) {
         clearHistoryDisposable,
         removeBookmarkDisposable,
         focusBookmarkExplorerDisposable,
-        setAsParentDisposable,
-        addChildBookmarkDisposable,
         moveBookmarkUpDisposable,
         moveBookmarkDownDisposable,
         expandAllDisposable,
