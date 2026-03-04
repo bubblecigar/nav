@@ -109,7 +109,7 @@
       {
         "command": "nav-extension.showBookmarkDetails",
         "title": "Show Bookmark Details",
-        "icon": "$(info)"
+        "icon": "$(eye)"
       }
     ],
     "menus": {
@@ -128,18 +128,18 @@
           "command": "nav-extension.expandAllBookmarks",
           "when": "view == bookmarkExplorer",
           "group": "navigation@3"
-        },
-        {
-          "command": "nav-extension.showBookmarkDetails",
-          "when": "view == bookmarkExplorer",
-          "group": "navigation@4"
         }
       ],
       "view/item/context": [
         {
-          "command": "nav-extension.navigateToBookmark",
+          "command": "nav-extension.showBookmarkDetails",
           "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
           "group": "inline@1"
+        },
+        {
+          "command": "nav-extension.navigateToBookmark",
+          "when": "view == bookmarkExplorer && (viewItem == bookmarkItem || viewItem == bookmarkParent)",
+          "group": "inline@2"
         },
         {
           "command": "nav-extension.moveBookmarkUp",

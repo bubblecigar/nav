@@ -292,9 +292,25 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // Show bookmark details command
-    let showBookmarkDetailsDisposable = vscode.commands.registerCommand('nav-extension.showBookmarkDetails', () => {
+    let showBookmarkDetailsDisposable = vscode.commands.registerCommand('nav-extension.showBookmarkDetails', (treeItem?: BookmarkTreeItem) => {
+        let selectedItem: BookmarkTreeItem | undefined;
+        
+        if (treeItem) {
+            // Called from inline button
+            selectedItem = treeItem;
+        } else {
+            // Called from command palette or keyboard shortcut
+            if (treeView.selection && treeView.selection.length > 0) {
+                selectedItem = treeView.selection[0];
+            }
+        }
+        
         if (bookmarkDetailsPanel) {
             bookmarkDetailsPanel.reveal(vscode.ViewColumn.Two);
+            // Update with the specific bookmark if provided
+            if (selectedItem) {
+                updateBookmarkDetailsPanel(bookmarkDetailsPanel, selectedItem, getWebviewContent);
+            }
         } else {
             bookmarkDetailsPanel = vscode.window.createWebviewPanel(
                 'bookmarkDetails',
@@ -309,12 +325,13 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             );
 
-            // Set initial content
-            bookmarkDetailsPanel.webview.html = getEmptyWebviewContent();
-
-            // Update with current selection if any
-            if (treeView.selection.length > 0) {
+            // Set initial content based on the specific item or current selection
+            if (selectedItem) {
+                bookmarkDetailsPanel.webview.html = getWebviewContent(selectedItem.bookmark);
+            } else if (treeView.selection.length > 0) {
                 updateBookmarkDetailsPanel(bookmarkDetailsPanel, treeView.selection[0], getWebviewContent);
+            } else {
+                bookmarkDetailsPanel.webview.html = getEmptyWebviewContent();
             }
 
             // Handle when panel is disposed
