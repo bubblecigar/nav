@@ -2,121 +2,210 @@ import * as vscode from 'vscode';
 import { BookmarkItem } from '../types/bookmarkTypes';
 
 export function getDiagramWebviewContent(bookmarks: BookmarkItem[]): string {
-    const generateTreeHtml = (items: BookmarkItem[], level: number = 0): string => {
-        return items.map(bookmark => {
+    const generateNodesAndEdges = (items: BookmarkItem[], parentId?: string, level: number = 0) => {
+        const nodes: any[] = [];
+        const edges: any[] = [];
+        let nodeIndex = 0;
+        
+        const processBookmark = (bookmark: BookmarkItem, x: number, y: number, parentNodeId?: string) => {
+            const nodeId = `node-${bookmark.filePath}-${bookmark.line}-${bookmark.character}`;
             const hasChildren = bookmark.children && bookmark.children.length > 0;
-            const indent = level * 30;
-            const childrenHtml = hasChildren ? generateTreeHtml(bookmark.children!, level + 1) : '';
             
-            return `
-                <div class="node" style="margin-left: ${indent}px;">
-                    <div class="node-content ${hasChildren ? 'has-children' : ''}">
-                        <span class="node-icon">${hasChildren ? '📁' : '📄'}</span>
-                        <span class="node-text">${bookmark.text}</span>
-                        <span class="node-file">${vscode.workspace.asRelativePath(bookmark.filePath)}:${bookmark.line + 1}</span>
-                    </div>
-                    ${childrenHtml}
-                </div>
-            `;
-        }).join('');
+            nodes.push({
+                id: nodeId,
+                type: hasChildren ? 'input' : 'default',
+                data: {
+                    label: `📁 ${bookmark.text}\n${vscode.workspace.asRelativePath(bookmark.filePath)}:${bookmark.line + 1}`,
+                    bookmarkData: {
+                        text: bookmark.text,
+                        filePath: bookmark.filePath,
+                        line: bookmark.line,
+                        character: bookmark.character,
+                        timestamp: bookmark.timestamp
+                    }
+                },
+                position: { x, y },
+                style: {
+                    background: hasChildren ? '#e1f5fe' : '#f3e5f5',
+                    color: '#333',
+                    border: hasChildren ? '2px solid #0277bd' : '1px solid #7b1fa2',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    fontSize: '12px',
+                    minWidth: '200px'
+                }
+            });
+            
+            if (parentNodeId) {
+                edges.push({
+                    id: `edge-${parentNodeId}-${nodeId}`,
+                    source: parentNodeId,
+                    target: nodeId,
+                    type: 'smoothstep',
+                    style: { stroke: '#666' }
+                });
+            }
+            
+            if (bookmark.children) {
+                bookmark.children.forEach((child, index) => {
+                    const childX = x + (index - (bookmark.children!.length - 1) / 2) * 250;
+                    const childY = y + 150;
+                    processBookmark(child, childX, childY, nodeId);
+                });
+            }
+        };
+        
+        items.forEach((bookmark, index) => {
+            const x = index * 300;
+            const y = 50;
+            processBookmark(bookmark, x, y);
+        });
+        
+        return { nodes, edges };
     };
-
+    
+    const { nodes, edges } = generateNodesAndEdges(bookmarks);
+    
     return `
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Bookmark Tree Diagram</title>
+            <title>Interactive Bookmark Diagram</title>
+            <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+            <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+            <script src="https://unpkg.com/reactflow@11/dist/umd/index.js"></script>
+            <link rel="stylesheet" href="https://unpkg.com/reactflow@11/dist/style.css" />
             <style>
                 body {
+                    margin: 0;
+                    padding: 0;
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    margin: 20px;
-                    background-color: var(--vscode-editor-background);
+                    background: var(--vscode-editor-background);
                     color: var(--vscode-editor-foreground);
+                    height: 100vh;
+                    overflow: hidden;
                 }
-                .tree-container {
-                    padding: 20px;
-                    border: 1px solid var(--vscode-widget-border);
-                    border-radius: 6px;
-                    background-color: var(--vscode-editor-background);
+                .diagram-container {
+                    width: 100vw;
+                    height: 100vh;
+                    background: var(--vscode-editor-background);
                 }
-                .node {
-                    margin: 8px 0;
-                    position: relative;
-                }
-                .node::before {
-                    content: '';
-                    position: absolute;
-                    left: -20px;
-                    top: 15px;
-                    width: 15px;
-                    height: 1px;
-                    background-color: var(--vscode-widget-border);
-                }
-                .node-content {
-                    display: flex;
-                    align-items: center;
-                    padding: 6px 12px;
-                    background-color: var(--vscode-list-inactiveSelectionBackground);
-                    border-radius: 4px;
-                    border-left: 3px solid var(--vscode-textLink-foreground);
-                    margin-bottom: 4px;
-                }
-                .node-content.has-children {
-                    border-left-color: var(--vscode-symbolIcon-folderForeground);
-                    font-weight: bold;
-                }
-                .node-icon {
-                    margin-right: 8px;
-                    font-size: 14px;
-                }
-                .node-text {
-                    font-weight: 500;
-                    margin-right: 12px;
-                    flex: 1;
-                }
-                .node-file {
+                .react-flow__node {
                     font-size: 12px;
-                    color: var(--vscode-descriptionForeground);
-                    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
                 }
-                h1 {
-                    color: var(--vscode-textLink-foreground);
-                    border-bottom: 2px solid var(--vscode-textLink-foreground);
-                    padding-bottom: 10px;
-                    margin-bottom: 20px;
+                .react-flow__controls {
+                    bottom: 20px;
+                    left: 20px;
                 }
-                .empty-state {
-                    text-align: center;
-                    color: var(--vscode-descriptionForeground);
-                    font-style: italic;
-                    padding: 40px;
+                .react-flow__minimap {
+                    bottom: 20px;
+                    right: 20px;
+                    background: var(--vscode-editor-background);
+                    border: 1px solid var(--vscode-widget-border);
+                }
+                .toolbar {
+                    position: absolute;
+                    top: 10px;
+                    left: 10px;
+                    z-index: 1000;
+                    background: var(--vscode-editor-background);
+                    border: 1px solid var(--vscode-widget-border);
+                    border-radius: 4px;
+                    padding: 8px;
                 }
                 .stats {
-                    background-color: var(--vscode-textBlockQuote-background);
+                    background: var(--vscode-textBlockQuote-background);
                     border-left: 4px solid var(--vscode-textBlockQuote-border);
-                    padding: 12px 16px;
-                    margin-bottom: 20px;
+                    padding: 8px 12px;
                     border-radius: 4px;
+                    font-size: 12px;
+                    margin-bottom: 8px;
+                }
+                .empty-state {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100vh;
+                    text-align: center;
+                    color: var(--vscode-descriptionForeground);
                 }
             </style>
         </head>
         <body>
-            <h1>📊 Bookmark Tree Diagram</h1>
-            ${bookmarks.length > 0 ? `
-                <div class="stats">
-                    <strong>📈 Statistics:</strong> ${bookmarks.length} root bookmark${bookmarks.length === 1 ? '' : 's'}
-                </div>
-                <div class="tree-container">
-                    ${generateTreeHtml(bookmarks)}
-                </div>
-            ` : `
-                <div class="empty-state">
-                    <p>📋 No bookmarks found</p>
-                    <p>Create some bookmarks to see the tree diagram!</p>
-                </div>
-            `}
+            <div id="root"></div>
+            
+            <script>
+                const { useState, useCallback } = React;
+                const ReactFlow = window.ReactFlow;
+                const { MiniMap, Controls, Background } = ReactFlow;
+                
+                const initialNodes = ${JSON.stringify(nodes)};
+                const initialEdges = ${JSON.stringify(edges)};
+                
+                function BookmarkDiagram() {
+                    const [nodes, setNodes] = useState(initialNodes);
+                    const [edges, setEdges] = useState(initialEdges);
+                    
+                    const onNodesChange = useCallback((changes) => {
+                        setNodes((nds) => ReactFlow.applyNodeChanges(changes, nds));
+                    }, []);
+                    
+                    const onEdgesChange = useCallback((changes) => {
+                        setEdges((eds) => ReactFlow.applyEdgeChanges(changes, eds));
+                    }, []);
+                    
+                    const onNodeClick = useCallback((event, node) => {
+                        console.log('Node clicked:', node.data.bookmarkData);
+                        // Could send message to VS Code to navigate to bookmark
+                    }, []);
+                    
+                    if (nodes.length === 0) {
+                        return React.createElement('div', { className: 'empty-state' }, [
+                            React.createElement('h2', { key: 'title' }, '📋 No bookmarks found'),
+                            React.createElement('p', { key: 'description' }, 'Create some bookmarks to see the interactive diagram!')
+                        ]);
+                    }
+                    
+                    return React.createElement('div', { className: 'diagram-container' }, [
+                        React.createElement('div', { key: 'toolbar', className: 'toolbar' }, [
+                            React.createElement('div', { key: 'stats', className: 'stats' }, 
+                                \`📊 ${nodes.length} bookmark\${nodes.length === 1 ? '' : 's'} • Interactive Diagram\`
+                            ),
+                            React.createElement('div', { key: 'instructions', style: { fontSize: '11px', opacity: 0.8 } }, 
+                                '💡 Drag nodes • Zoom with mouse wheel • Use controls to fit view'
+                            )
+                        ]),
+                        React.createElement(ReactFlow.default, {
+                            key: 'reactflow',
+                            nodes: nodes,
+                            edges: edges,
+                            onNodesChange: onNodesChange,
+                            onEdgesChange: onEdgesChange,
+                            onNodeClick: onNodeClick,
+                            fitView: true,
+                            attributionPosition: 'bottom-left'
+                        }, [
+                            React.createElement(MiniMap, { 
+                                key: 'minimap',
+                                nodeColor: (node) => node.style?.background || '#e1f5fe'
+                            }),
+                            React.createElement(Controls, { key: 'controls' }),
+                            React.createElement(Background, { 
+                                key: 'background',
+                                variant: 'dots',
+                                gap: 12,
+                                size: 1
+                            })
+                        ])
+                    ]);
+                }
+                
+                const root = ReactDOM.createRoot(document.getElementById('root'));
+                root.render(React.createElement(BookmarkDiagram));
+            </script>
         </body>
         </html>
     `;
