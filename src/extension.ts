@@ -294,7 +294,10 @@ export function activate(context: vscode.ExtensionContext) {
     let exportBookmarksDisposable = vscode.commands.registerCommand('nav-extension.exportBookmarks', async () => {
         try {
             const jsonData = bookmarkHistory.exportToJson();
-            const defaultFileName = `bookmarks-${new Date().toISOString().split('T')[0]}.json`;
+            const currentImportedFile = getCurrentImportedBookmarkFile();
+            const defaultFileName = currentImportedFile
+                ? path.basename(currentImportedFile)
+                : `bookmarks-${new Date().toISOString().split('T')[0]}.json`;
             
             const uri = await vscode.window.showSaveDialog({
                 filters: {
