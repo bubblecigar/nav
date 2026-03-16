@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { BookmarkItem } from './types/bookmarkTypes';
 import { BookmarkHistory, BookmarkTreeItem, BookmarkTreeDataProvider } from './class/bookmarkClasses';
 import { updateContextVariables } from './utils/panelUtils';
@@ -9,12 +10,33 @@ import { BookmarkDetailsViewProvider } from './utils/BookmarkDetailsViewProvider
 let bookmarkHistory: BookmarkHistory;
 let bookmarkTreeDataProvider: BookmarkTreeDataProvider;
 let bookmarkDetailsProvider: BookmarkDetailsViewProvider;
+const lastImportExportDirectoryKey = 'lastImportExportDirectory';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Navigation extension is now active!');
     
     bookmarkHistory = new BookmarkHistory(context);
     bookmarkTreeDataProvider = new BookmarkTreeDataProvider(bookmarkHistory);
+
+    const getLastImportExportDirectory = (): string | undefined => {
+        return context.globalState.get<string>(lastImportExportDirectoryKey);
+    };
+
+    const getDefaultExportUri = (fileName: string): vscode.Uri => {
+        const lastDirectory = getLastImportExportDirectory();
+        return lastDirectory
+            ? vscode.Uri.file(path.join(lastDirectory, fileName))
+            : vscode.Uri.file(fileName);
+    };
+
+    const getDefaultImportUri = (): vscode.Uri | undefined => {
+        const lastDirectory = getLastImportExportDirectory();
+        return lastDirectory ? vscode.Uri.file(lastDirectory) : undefined;
+    };
+
+    const saveImportExportDirectory = async (uri: vscode.Uri): Promise<void> => {
+        await context.globalState.update(lastImportExportDirectoryKey, path.dirname(uri.fsPath));
+    };
     
     // Register tree data provider
     const treeView = vscode.window.createTreeView('bookmarkExplorer', {
@@ -251,11 +273,12 @@ export function activate(context: vscode.ExtensionContext) {
                     'JSON Files': ['json'],
                     'All Files': ['*']
                 },
-                defaultUri: vscode.Uri.file(defaultFileName)
+                defaultUri: getDefaultExportUri(defaultFileName)
             });
 
             if (uri) {
                 await vscode.workspace.fs.writeFile(uri, Buffer.from(jsonData, 'utf8'));
+                await saveImportExportDirectory(uri);
             }
         } catch (error) {
             // Export failed silently
@@ -273,7 +296,8 @@ export function activate(context: vscode.ExtensionContext) {
                 canSelectFiles: true,
                 canSelectFolders: false,
                 canSelectMany: false,
-                openLabel: 'Import Bookmarks'
+                openLabel: 'Import Bookmarks',
+                defaultUri: getDefaultImportUri()
             });
 
             if (uris && uris.length > 0) {
@@ -303,6 +327,8 @@ export function activate(context: vscode.ExtensionContext) {
                     } else {
                         bookmarkHistory.mergeFromJson(jsonString);
                     }
+
+                    await saveImportExportDirectory(fileUri);
                 }
             }
         } catch (error) {
