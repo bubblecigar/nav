@@ -2,7 +2,7 @@
   "name": "nav-extension",
   "displayName": "Navigation Extension",
   "description": "A VS Code extension for enhanced navigation",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "local-dev",
   "engines": {
     "vscode": "^1.60.0"
