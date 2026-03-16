@@ -365,8 +365,33 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             if (selected) {
-                const document = await vscode.workspace.openTextDocument(selected.uri);
-                await vscode.window.showTextDocument(document);
+                const fileContent = await vscode.workspace.fs.readFile(selected.uri);
+                const jsonString = Buffer.from(fileContent).toString('utf8');
+
+                const action = await vscode.window.showQuickPick([
+                    {
+                        label: 'Replace All',
+                        description: 'Replace all existing bookmarks with imported ones',
+                        detail: 'This will delete your current bookmarks'
+                    },
+                    {
+                        label: 'Merge',
+                        description: 'Add imported bookmarks to existing ones',
+                        detail: 'This will keep your current bookmarks and add the new ones'
+                    }
+                ], {
+                    placeHolder: 'How would you like to import the bookmarks?'
+                });
+
+                if (action) {
+                    if (action.label === 'Replace All') {
+                        bookmarkHistory.importFromJson(jsonString);
+                    } else {
+                        bookmarkHistory.mergeFromJson(jsonString);
+                    }
+
+                    await saveImportExportDirectory(selected.uri);
+                }
             }
         } catch (error) {
             vscode.window.showErrorMessage('Failed to load files from the saved import/export directory.');
