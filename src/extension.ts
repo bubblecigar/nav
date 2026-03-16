@@ -335,6 +335,43 @@ export function activate(context: vscode.ExtensionContext) {
             // Import failed silently
         }
     });
+
+    let showSavedDirectoryFilesDisposable = vscode.commands.registerCommand('nav-extension.showSavedDirectoryFiles', async () => {
+        try {
+            const savedDirectory = getLastImportExportDirectory();
+            if (!savedDirectory) {
+                vscode.window.showInformationMessage('No saved import/export directory found yet.');
+                return;
+            }
+
+            const directoryUri = vscode.Uri.file(savedDirectory);
+            const entries = await vscode.workspace.fs.readDirectory(directoryUri);
+            const files = entries
+                .filter(([, fileType]) => fileType === vscode.FileType.File)
+                .sort(([left], [right]) => left.localeCompare(right))
+                .map(([name]) => ({
+                    label: name,
+                    description: savedDirectory,
+                    uri: vscode.Uri.file(path.join(savedDirectory, name))
+                }));
+
+            if (files.length === 0) {
+                vscode.window.showInformationMessage(`No files found in ${savedDirectory}.`);
+                return;
+            }
+
+            const selected = await vscode.window.showQuickPick(files, {
+                placeHolder: 'Select a file from the saved import/export directory'
+            });
+
+            if (selected) {
+                const document = await vscode.workspace.openTextDocument(selected.uri);
+                await vscode.window.showTextDocument(document);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage('Failed to load files from the saved import/export directory.');
+        }
+    });
     
     // Draw diagram command
     let drawDiagramDisposable = vscode.commands.registerCommand('nav-extension.drawDiagram', async () => {
@@ -366,6 +403,7 @@ export function activate(context: vscode.ExtensionContext) {
         showBookmarkDetailsDisposable,
         exportBookmarksDisposable,
         importBookmarksDisposable,
+        showSavedDirectoryFilesDisposable,
         drawDiagramDisposable
     );
 }

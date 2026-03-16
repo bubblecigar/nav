@@ -104,6 +104,11 @@
         "command": "nav-extension.drawDiagram",
         "title": "Draw Diagram",
         "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "nav-extension.showSavedDirectoryFiles",
+        "title": "Open File From Saved Directory",
+        "icon": "$(folder-opened)"
       }
     ],
     "menus": {
@@ -114,9 +119,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "nav-extension.expandAllBookmarks",
+          "command": "nav-extension.showSavedDirectoryFiles",
           "when": "view == bookmarkExplorer",
           "group": "navigation@2"
+        },
+        {
+          "command": "nav-extension.expandAllBookmarks",
+          "when": "view == bookmarkExplorer",
+          "group": "navigation@3"
         },
         {
           "command": "nav-extension.exportBookmarks",
