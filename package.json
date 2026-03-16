@@ -204,6 +204,12 @@
         "key": "ctrl+down",
         "mac": "cmd+down",
         "when": "focusedView == bookmarkExplorer && nav-extension.canMoveDown"
+      },
+      {
+        "command": "nav-extension.exportBookmarks",
+        "key": "ctrl+s",
+        "mac": "cmd+s",
+        "when": "focusedView == bookmarkExplorer"
       }
     ]
   },
