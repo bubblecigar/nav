@@ -12,16 +12,42 @@ let bookmarkTreeDataProvider: BookmarkTreeDataProvider;
 let bookmarkDetailsProvider: BookmarkDetailsViewProvider;
 const lastImportExportDirectoryKey = 'lastImportExportDirectory';
 const currentImportedBookmarkFileKey = 'currentImportedBookmarkFile';
+const bookmarkContextRadius = 2;
+
+function captureBookmarkContext(document: vscode.TextDocument, line: number): { contextBefore: string[]; contextAfter: string[] } {
+    const startLine = Math.max(0, line - bookmarkContextRadius);
+    const endLine = Math.min(document.lineCount - 1, line + bookmarkContextRadius);
+    const contextBefore: string[] = [];
+    const contextAfter: string[] = [];
+
+    for (let currentLine = startLine; currentLine <= endLine; currentLine++) {
+        if (currentLine === line) {
+            continue;
+        }
+
+        const lineText = document.lineAt(currentLine).text;
+        if (currentLine < line) {
+            contextBefore.push(lineText);
+        } else {
+            contextAfter.push(lineText);
+        }
+    }
+
+    return { contextBefore, contextAfter };
+}
 
 function resolveBookmarkPosition(document: vscode.TextDocument, bookmark: BookmarkItem): vscode.Position {
     const documentText = document.getText();
     const bookmarkText = bookmark.text;
-    const originalOffset = document.offsetAt(new vscode.Position(bookmark.line, bookmark.character));
+    const safeLine = Math.min(bookmark.line, document.lineCount - 1);
+    const safeCharacter = Math.min(bookmark.character, document.lineAt(safeLine).text.length);
+    const originalPosition = new vscode.Position(safeLine, safeCharacter);
+    const originalOffset = document.offsetAt(originalPosition);
 
     if (bookmarkText) {
         const currentSlice = documentText.slice(originalOffset, originalOffset + bookmarkText.length);
         if (currentSlice === bookmarkText) {
-            return new vscode.Position(bookmark.line, bookmark.character);
+            return originalPosition;
         }
 
         let bestOffset = -1;
@@ -32,7 +58,25 @@ function resolveBookmarkPosition(document: vscode.TextDocument, bookmark: Bookma
             const matchPosition = document.positionAt(searchOffset);
             const lineDistance = Math.abs(matchPosition.line - bookmark.line);
             const characterDistance = Math.abs(matchPosition.character - bookmark.character);
-            const score = lineDistance * 1000 + characterDistance;
+            let score = lineDistance * 1000 + characterDistance;
+
+            if (bookmark.contextBefore) {
+                bookmark.contextBefore.forEach((lineText, index) => {
+                    const compareLine = matchPosition.line - bookmark.contextBefore!.length + index;
+                    if (compareLine < 0 || document.lineAt(compareLine).text !== lineText) {
+                        score += 10000;
+                    }
+                });
+            }
+
+            if (bookmark.contextAfter) {
+                bookmark.contextAfter.forEach((lineText, index) => {
+                    const compareLine = matchPosition.line + index + 1;
+                    if (compareLine >= document.lineCount || document.lineAt(compareLine).text !== lineText) {
+                        score += 10000;
+                    }
+                });
+            }
 
             if (score < bestScore) {
                 bestScore = score;
@@ -47,9 +91,7 @@ function resolveBookmarkPosition(document: vscode.TextDocument, bookmark: Bookma
         }
     }
 
-    const safeLine = Math.min(bookmark.line, document.lineCount - 1);
-    const safeCharacter = Math.min(bookmark.character, document.lineAt(safeLine).text.length);
-    return new vscode.Position(safeLine, safeCharacter);
+    return originalPosition;
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -185,6 +227,7 @@ export function activate(context: vscode.ExtensionContext) {
             filePath: document.fileName,
             line: position.line,
             character: position.character,
+            ...captureBookmarkContext(document, position.line),
             timestamp: new Date()
         };
         

@@ -34,6 +34,8 @@ export class BookmarkHistory {
             line: item.line,
             character: item.character,
             timestamp: item.timestamp.toISOString(),
+            contextBefore: item.contextBefore,
+            contextAfter: item.contextAfter,
             notes: item.notes,
             children: item.children ? this.serializeBookmarks(item.children) : undefined
         }));
@@ -69,6 +71,8 @@ export class BookmarkHistory {
                 line: item.line,
                 character: item.character,
                 timestamp: new Date(item.timestamp),
+                contextBefore: Array.isArray(item.contextBefore) ? item.contextBefore : undefined,
+                contextAfter: Array.isArray(item.contextAfter) ? item.contextAfter : undefined,
                 notes: item.notes,
                 parent: parent || undefined,
                 children: undefined
@@ -611,6 +615,8 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
             line: item.bookmark.line,
             character: item.bookmark.character,
             timestamp: item.bookmark.timestamp.toISOString(),
+            contextBefore: item.bookmark.contextBefore,
+            contextAfter: item.bookmark.contextAfter,
             children: item.bookmark.children ? this.serializeBookmarks(item.bookmark.children) : undefined
         })));
         dataTransfer.set(this.dragMimeTypes[0], transferItem);
@@ -643,6 +649,8 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
                 line: draggedData.line,
                 character: draggedData.character,
                 timestamp: new Date(draggedData.timestamp),
+                contextBefore: Array.isArray(draggedData.contextBefore) ? draggedData.contextBefore : undefined,
+                contextAfter: Array.isArray(draggedData.contextAfter) ? draggedData.contextAfter : undefined,
                 children: draggedData.children ? this.deserializeBookmarks(draggedData.children, null) : undefined
             };
 
@@ -664,6 +672,8 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
             line: item.line,
             character: item.character,
             timestamp: item.timestamp.toISOString(),
+            contextBefore: item.contextBefore,
+            contextAfter: item.contextAfter,
             children: item.children ? this.serializeBookmarks(item.children) : undefined
         }));
     }
@@ -677,6 +687,8 @@ export class BookmarkTreeDataProvider implements vscode.TreeDataProvider<Bookmar
                 line: item.line,
                 character: item.character,
                 timestamp: new Date(item.timestamp),
+                contextBefore: Array.isArray(item.contextBefore) ? item.contextBefore : undefined,
+                contextAfter: Array.isArray(item.contextAfter) ? item.contextAfter : undefined,
                 notes: item.notes,
                 parent: parent || undefined,
                 children: undefined

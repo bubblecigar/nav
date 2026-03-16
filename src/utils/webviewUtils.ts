@@ -9,6 +9,9 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
     const hasChildren = bookmark.children && bookmark.children.length > 0;
     const hasParent = bookmark.parent !== undefined;
     const notes = bookmark.notes || '';
+    const contextBefore = bookmark.contextBefore || [];
+    const contextAfter = bookmark.contextAfter || [];
+    const formatContext = (lines: string[]) => lines.length > 0 ? lines.join('\n') : '(none)';
     
     return `<!DOCTYPE html>
     <html lang="en">
@@ -127,6 +130,15 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                 border-radius: 2px;
                 font-size: 12px;
             }
+            .context-block {
+                display: block;
+                white-space: pre-wrap;
+                background-color: var(--vscode-textBlockQuote-background);
+                border: 1px solid var(--vscode-panel-border);
+                border-radius: 4px;
+                padding: 8px 10px;
+                margin-top: 4px;
+            }
         </style>
     </head>
     <body>
@@ -164,6 +176,14 @@ export function getWebviewContent(bookmark: BookmarkItem): string {
                     ${hasParent ? '📁 Has Parent: ' + (bookmark.parent?.text || 'Unknown') : '🏠 Root Level'}
                     ${hasChildren ? ', 📂 Children: ' + bookmark.children!.length : ', 📄 No Children'}
                 </span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Pre context:</span>
+                <span class="meta-value context-block">${formatContext(contextBefore)}</span>
+            </div>
+            <div class="meta-item">
+                <span class="meta-label">Post context</span>
+                <span class="meta-value context-block">${formatContext(contextAfter)}</span>
             </div>
         </div>
         
