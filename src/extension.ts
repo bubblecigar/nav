@@ -13,6 +13,45 @@ let bookmarkDetailsProvider: BookmarkDetailsViewProvider;
 const lastImportExportDirectoryKey = 'lastImportExportDirectory';
 const currentImportedBookmarkFileKey = 'currentImportedBookmarkFile';
 
+function resolveBookmarkPosition(document: vscode.TextDocument, bookmark: BookmarkItem): vscode.Position {
+    const documentText = document.getText();
+    const bookmarkText = bookmark.text;
+    const originalOffset = document.offsetAt(new vscode.Position(bookmark.line, bookmark.character));
+
+    if (bookmarkText) {
+        const currentSlice = documentText.slice(originalOffset, originalOffset + bookmarkText.length);
+        if (currentSlice === bookmarkText) {
+            return new vscode.Position(bookmark.line, bookmark.character);
+        }
+
+        let bestOffset = -1;
+        let bestScore = Number.POSITIVE_INFINITY;
+        let searchOffset = documentText.indexOf(bookmarkText);
+
+        while (searchOffset !== -1) {
+            const matchPosition = document.positionAt(searchOffset);
+            const lineDistance = Math.abs(matchPosition.line - bookmark.line);
+            const characterDistance = Math.abs(matchPosition.character - bookmark.character);
+            const score = lineDistance * 1000 + characterDistance;
+
+            if (score < bestScore) {
+                bestScore = score;
+                bestOffset = searchOffset;
+            }
+
+            searchOffset = documentText.indexOf(bookmarkText, searchOffset + 1);
+        }
+
+        if (bestOffset !== -1) {
+            return document.positionAt(bestOffset);
+        }
+    }
+
+    const safeLine = Math.min(bookmark.line, document.lineCount - 1);
+    const safeCharacter = Math.min(bookmark.character, document.lineAt(safeLine).text.length);
+    return new vscode.Position(safeLine, safeCharacter);
+}
+
 export function activate(context: vscode.ExtensionContext) {
     console.log('Navigation extension is now active!');
     
@@ -162,11 +201,8 @@ export function activate(context: vscode.ExtensionContext) {
             const uri = vscode.Uri.file(bookmark.filePath);
             const document = await vscode.workspace.openTextDocument(uri);
             const editor = await vscode.window.showTextDocument(document);
-            
-            const position = new vscode.Position(
-                bookmark.line,
-                bookmark.character
-            );
+
+            const position = resolveBookmarkPosition(document, bookmark);
             
             editor.selection = new vscode.Selection(position, position);
             editor.revealRange(new vscode.Range(position, position));
