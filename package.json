@@ -20,12 +20,12 @@
         {
           "id": "bookmark-explorer",
           "title": "Bookmarks",
-          "icon": "$(bookmark)"
+          "icon": "$(book)"
         }
       ]
     },
     "views": {
-      "explorer": [
+      "bookmark-explorer": [
         {
           "id": "bookmarkExplorer",
           "name": "Bookmark History",
