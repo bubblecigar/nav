@@ -37,6 +37,10 @@ export function activate(context: vscode.ExtensionContext) {
     const saveImportExportDirectory = async (uri: vscode.Uri): Promise<void> => {
         await context.globalState.update(lastImportExportDirectoryKey, path.dirname(uri.fsPath));
     };
+
+    const setImportExportDirectory = async (directoryUri: vscode.Uri): Promise<void> => {
+        await context.globalState.update(lastImportExportDirectoryKey, directoryUri.fsPath);
+    };
     
     // Register tree data provider
     const treeView = vscode.window.createTreeView('bookmarkExplorer', {
@@ -338,34 +342,101 @@ export function activate(context: vscode.ExtensionContext) {
 
     let showSavedDirectoryFilesDisposable = vscode.commands.registerCommand('nav-extension.showSavedDirectoryFiles', async () => {
         try {
-            const savedDirectory = getLastImportExportDirectory();
+            type SavedDirectoryFileItem = vscode.QuickPickItem & {
+                itemType: 'file';
+                uri: vscode.Uri;
+            };
+
+            type ChangeDirectoryItem = vscode.QuickPickItem & {
+                itemType: 'changeDirectory';
+            };
+
+            let savedDirectory = getLastImportExportDirectory();
             if (!savedDirectory) {
-                vscode.window.showInformationMessage('No saved import/export directory found yet.');
-                return;
+                const uris = await vscode.window.showOpenDialog({
+                    canSelectFiles: false,
+                    canSelectFolders: true,
+                    canSelectMany: false,
+                    openLabel: 'Select Saved Directory'
+                });
+
+                if (!uris || uris.length === 0) {
+                    return;
+                }
+
+                await setImportExportDirectory(uris[0]);
+                savedDirectory = uris[0].fsPath;
             }
 
-            const directoryUri = vscode.Uri.file(savedDirectory);
-            const entries = await vscode.workspace.fs.readDirectory(directoryUri);
-            const files = entries
-                .filter(([, fileType]) => fileType === vscode.FileType.File)
-                .sort(([left], [right]) => left.localeCompare(right))
-                .map(([name]) => ({
-                    label: name,
-                    description: savedDirectory,
-                    uri: vscode.Uri.file(path.join(savedDirectory, name))
-                }));
+            const buildFileItems = async (directory: string) => {
+                const directoryUri = vscode.Uri.file(directory);
+                const entries = await vscode.workspace.fs.readDirectory(directoryUri);
+                return entries
+                    .filter(([, fileType]) => fileType === vscode.FileType.File)
+                    .sort(([left], [right]) => left.localeCompare(right))
+                    .map(([name]): SavedDirectoryFileItem => ({
+                        itemType: 'file',
+                        label: name,
+                        description: directory,
+                        uri: vscode.Uri.file(path.join(directory, name))
+                    }));
+            };
 
-            if (files.length === 0) {
-                vscode.window.showInformationMessage(`No files found in ${savedDirectory}.`);
-                return;
-            }
-
-            const selected = await vscode.window.showQuickPick(files, {
+            let files = await buildFileItems(savedDirectory);
+            const selected = await vscode.window.showQuickPick<SavedDirectoryFileItem | ChangeDirectoryItem>([
+                {
+                    itemType: 'changeDirectory',
+                    label: '$(folder-library) Change Saved Directory...',
+                    description: savedDirectory
+                },
+                ...files
+            ], {
                 placeHolder: 'Select a file from the saved import/export directory'
             });
 
             if (selected) {
-                const fileContent = await vscode.workspace.fs.readFile(selected.uri);
+                let selectedUri: vscode.Uri | undefined;
+
+                if (selected.itemType === 'changeDirectory') {
+                    const uris = await vscode.window.showOpenDialog({
+                        canSelectFiles: false,
+                        canSelectFolders: true,
+                        canSelectMany: false,
+                        openLabel: 'Select Saved Directory',
+                        defaultUri: vscode.Uri.file(savedDirectory)
+                    });
+
+                    if (!uris || uris.length === 0) {
+                        return;
+                    }
+
+                    await setImportExportDirectory(uris[0]);
+                    savedDirectory = uris[0].fsPath;
+                    files = await buildFileItems(savedDirectory);
+
+                    if (files.length === 0) {
+                        vscode.window.showInformationMessage(`No files found in ${savedDirectory}.`);
+                        return;
+                    }
+
+                    const fileSelection = await vscode.window.showQuickPick<SavedDirectoryFileItem>(files, {
+                        placeHolder: 'Select a file from the saved import/export directory'
+                    });
+
+                    if (!fileSelection) {
+                        return;
+                    }
+
+                    selectedUri = fileSelection.uri;
+                } else {
+                    selectedUri = selected.uri;
+                }
+
+                if (!selectedUri) {
+                    return;
+                }
+
+                const fileContent = await vscode.workspace.fs.readFile(selectedUri);
                 const jsonString = Buffer.from(fileContent).toString('utf8');
 
                 const action = await vscode.window.showQuickPick([
@@ -390,7 +461,7 @@ export function activate(context: vscode.ExtensionContext) {
                         bookmarkHistory.mergeFromJson(jsonString);
                     }
 
-                    await saveImportExportDirectory(selected.uri);
+                    await saveImportExportDirectory(selectedUri);
                 }
             }
         } catch (error) {
