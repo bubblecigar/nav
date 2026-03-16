@@ -50,6 +50,10 @@ export function activate(context: vscode.ExtensionContext) {
     const setCurrentImportedBookmarkFile = async (fileUri: vscode.Uri): Promise<void> => {
         await context.globalState.update(currentImportedBookmarkFileKey, fileUri.fsPath);
     };
+
+    const clearCurrentImportedBookmarkFile = async (): Promise<void> => {
+        await context.globalState.update(currentImportedBookmarkFileKey, undefined);
+    };
     
     // Register tree data provider
     const treeView = vscode.window.createTreeView('bookmarkExplorer', {
@@ -201,6 +205,8 @@ export function activate(context: vscode.ExtensionContext) {
     // Clear bookmark history command
     let clearHistoryDisposable = vscode.commands.registerCommand('nav-extension.clearBookmarkHistory', async () => {
         bookmarkHistory.clear();
+        await clearCurrentImportedBookmarkFile();
+        updateImportedBookmarkFileIndicator();
     });
     
     // Remove single bookmark command
