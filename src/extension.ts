@@ -11,6 +11,7 @@ let bookmarkHistory: BookmarkHistory;
 let bookmarkTreeDataProvider: BookmarkTreeDataProvider;
 let bookmarkDetailsProvider: BookmarkDetailsViewProvider;
 const lastImportExportDirectoryKey = 'lastImportExportDirectory';
+const currentImportedBookmarkFileKey = 'currentImportedBookmarkFile';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Navigation extension is now active!');
@@ -41,6 +42,14 @@ export function activate(context: vscode.ExtensionContext) {
     const setImportExportDirectory = async (directoryUri: vscode.Uri): Promise<void> => {
         await context.globalState.update(lastImportExportDirectoryKey, directoryUri.fsPath);
     };
+
+    const getCurrentImportedBookmarkFile = (): string | undefined => {
+        return context.globalState.get<string>(currentImportedBookmarkFileKey);
+    };
+
+    const setCurrentImportedBookmarkFile = async (fileUri: vscode.Uri): Promise<void> => {
+        await context.globalState.update(currentImportedBookmarkFileKey, fileUri.fsPath);
+    };
     
     // Register tree data provider
     const treeView = vscode.window.createTreeView('bookmarkExplorer', {
@@ -48,6 +57,15 @@ export function activate(context: vscode.ExtensionContext) {
         showCollapseAll: true,
         dragAndDropController: bookmarkTreeDataProvider
     });
+
+    const updateImportedBookmarkFileIndicator = () => {
+        const currentImportedFile = getCurrentImportedBookmarkFile();
+        treeView.title = currentImportedFile
+            ? `${path.basename(currentImportedFile)}`
+            : 'Bookmark History';
+    };
+
+    updateImportedBookmarkFileIndicator();
     
     // Register webview view provider for bookmark details
     bookmarkDetailsProvider = new BookmarkDetailsViewProvider(context.extensionUri);
@@ -326,10 +344,17 @@ export function activate(context: vscode.ExtensionContext) {
                 });
 
                 if (action) {
+                    let importSucceeded = false;
+
                     if (action.label === 'Replace All') {
-                        bookmarkHistory.importFromJson(jsonString);
+                        importSucceeded = bookmarkHistory.importFromJson(jsonString);
                     } else {
-                        bookmarkHistory.mergeFromJson(jsonString);
+                        importSucceeded = bookmarkHistory.mergeFromJson(jsonString);
+                    }
+
+                    if (importSucceeded) {
+                        await setCurrentImportedBookmarkFile(fileUri);
+                        updateImportedBookmarkFileIndicator();
                     }
 
                     await saveImportExportDirectory(fileUri);
@@ -455,10 +480,17 @@ export function activate(context: vscode.ExtensionContext) {
                 });
 
                 if (action) {
+                    let importSucceeded = false;
+
                     if (action.label === 'Replace All') {
-                        bookmarkHistory.importFromJson(jsonString);
+                        importSucceeded = bookmarkHistory.importFromJson(jsonString);
                     } else {
-                        bookmarkHistory.mergeFromJson(jsonString);
+                        importSucceeded = bookmarkHistory.mergeFromJson(jsonString);
+                    }
+
+                    if (importSucceeded) {
+                        await setCurrentImportedBookmarkFile(selectedUri);
+                        updateImportedBookmarkFileIndicator();
                     }
 
                     await saveImportExportDirectory(selectedUri);
