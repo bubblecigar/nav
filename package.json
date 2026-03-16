@@ -20,7 +20,7 @@
         {
           "id": "bookmark-explorer",
           "title": "Bookmarks",
-          "icon": "$(book)"
+          "icon": "$(repo-pinned)"
         }
       ]
     },
