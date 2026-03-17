@@ -2,7 +2,7 @@
   "name": "nav-extension",
   "displayName": "Navigation Extension",
   "description": "A VS Code extension for enhanced navigation",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "local-dev",
   "engines": {
     "vscode": "^1.60.0"
@@ -192,16 +192,6 @@
         "key": "ctrl+shift+b",
         "mac": "cmd+shift+b",
         "when": "editorTextFocus"
-      },
-      {
-        "command": "nav-extension.showBookmarkHistory",
-        "key": "ctrl+shift+h",
-        "mac": "cmd+shift+h"
-      },
-      {
-        "command": "nav-extension.focusBookmarkExplorer",
-        "key": "ctrl+shift+e",
-        "mac": "cmd+shift+e"
       },
       {
         "command": "nav-extension.moveBookmarkUp",
